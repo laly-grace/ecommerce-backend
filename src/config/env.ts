@@ -21,6 +21,8 @@ const EnvSchema = z.object({
     })
     .transform((v) => (v === undefined ? 3000 : parseInt(v as string, 10))),
   MONGO_URI: z.string().min(1, 'MONGO_URI (or DATABASE_URL) is required'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
 });
 
 const parsed = EnvSchema.safeParse(rawEnv);

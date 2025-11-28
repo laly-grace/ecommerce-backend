@@ -1,0 +1,4020 @@
+# Installation
+
+Learn how to configure Better Auth in your project.
+
+***
+
+title: Installation
+description: Learn how to configure Better Auth in your project.
+----------------------------------------------------------------
+
+<Steps>
+  <Step>
+    ### Install the Package
+
+    Let's start by adding Better Auth to your project:
+
+    <CodeBlockTabs defaultValue="npm">
+      <CodeBlockTabsList>
+        <CodeBlockTabsTrigger value="npm">
+          npm
+        </CodeBlockTabsTrigger>
+
+        <CodeBlockTabsTrigger value="pnpm">
+          pnpm
+        </CodeBlockTabsTrigger>
+
+        <CodeBlockTabsTrigger value="yarn">
+          yarn
+        </CodeBlockTabsTrigger>
+
+        <CodeBlockTabsTrigger value="bun">
+          bun
+        </CodeBlockTabsTrigger>
+      </CodeBlockTabsList>
+
+      <CodeBlockTab value="npm">
+        ```bash
+        npm install better-auth
+        ```
+      </CodeBlockTab>
+
+      <CodeBlockTab value="pnpm">
+        ```bash
+        pnpm add better-auth
+        ```
+      </CodeBlockTab>
+
+      <CodeBlockTab value="yarn">
+        ```bash
+        yarn add better-auth
+        ```
+      </CodeBlockTab>
+
+      <CodeBlockTab value="bun">
+        ```bash
+        bun add better-auth
+        ```
+      </CodeBlockTab>
+    </CodeBlockTabs>
+
+    <Callout type="info">
+      If you're using a separate client and server setup, make sure to install Better Auth in both parts of your project.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Set Environment Variables
+
+    Create a `.env` file in the root of your project and add the following environment variables:
+
+    1. **Secret Key**
+
+    Random value used by the library for encryption and generating hashes. **You can generate one using the button below** or you can use something like openssl.
+
+    ```txt title=".env"
+    BETTER_AUTH_SECRET=
+    ```
+
+    <GenerateSecret />
+
+    2. **Set Base URL**
+
+    ```txt title=".env"
+    BETTER_AUTH_URL=http://localhost:3000 # Base URL of your app
+    ```
+  </Step>
+
+  <Step>
+    ### Create A Better Auth Instance
+
+    Create a file named `auth.ts` in one of these locations:
+
+    * Project root
+    * `lib/` folder
+    * `utils/` folder
+
+    You can also nest any of these folders under `src/`, `app/` or `server/` folder. (e.g. `src/lib/auth.ts`, `app/lib/auth.ts`).
+
+    And in this file, import Better Auth and create your auth instance. Make sure to export the auth instance with the variable name `auth` or as a `default` export.
+
+    ```ts title="auth.ts"
+    import { betterAuth } from "better-auth";
+
+    export const auth = betterAuth({
+      //...
+    });
+    ```
+  </Step>
+
+  <Step>
+    ### Configure Database
+
+    Better Auth requires a database to store user data.
+    You can easily configure Better Auth to use SQLite, PostgreSQL, or MySQL, and more!
+
+    <Callout>
+      You can also configure Better Auth to work in a stateless mode if you don't configure a database. See [Stateless Session Management](/docs/concepts/session-management#stateless-session-management) for more information. Note that most plugins will require a database.
+    </Callout>
+
+    <Tabs items={["sqlite", "postgres", "mysql"]}>
+      <Tab value="sqlite">
+        ```ts title="auth.ts"
+        import { betterAuth } from "better-auth";
+        import Database from "better-sqlite3";
+
+        export const auth = betterAuth({
+            database: new Database("./sqlite.db"),
+        })
+        ```
+      </Tab>
+
+      <Tab value="postgres">
+        ```ts title="auth.ts"
+        import { betterAuth } from "better-auth";
+        import { Pool } from "pg";
+
+        export const auth = betterAuth({
+            database: new Pool({
+                // connection options
+            }),
+        })
+        ```
+      </Tab>
+
+      <Tab value="mysql">
+        ```ts title="auth.ts"
+        import { betterAuth } from "better-auth";
+        import { createPool } from "mysql2/promise";
+
+        export const auth = betterAuth({
+            database: createPool({
+                // connection options
+            }),
+        })
+        ```
+      </Tab>
+    </Tabs>
+
+    Alternatively, if you prefer to use an ORM, you can use one of the built-in adapters.
+
+    <Tabs items={["drizzle", "prisma", "mongodb"]}>
+      <Tab value="drizzle">
+        ```ts title="auth.ts"
+        import { betterAuth } from "better-auth";
+        import { drizzleAdapter } from "better-auth/adapters/drizzle";
+        import { db } from "@/db"; // your drizzle instance
+
+        export const auth = betterAuth({
+            database: drizzleAdapter(db, {
+                provider: "pg", // or "mysql", "sqlite"
+            }),
+        });
+        ```
+      </Tab>
+
+      <Tab value="prisma">
+        ```ts title="auth.ts"
+        import { betterAuth } from "better-auth";
+        import { prismaAdapter } from "better-auth/adapters/prisma";
+        // If your Prisma file is located elsewhere, you can change the path
+        import { PrismaClient } from "@/generated/prisma/client";
+
+        const prisma = new PrismaClient();
+        export const auth = betterAuth({
+            database: prismaAdapter(prisma, {
+                provider: "sqlite", // or "mysql", "postgresql", ...etc
+            }),
+        });
+        ```
+      </Tab>
+
+      <Tab value="mongodb">
+        ```ts title="auth.ts"
+        import { betterAuth } from "better-auth";
+        import { mongodbAdapter } from "better-auth/adapters/mongodb";
+        import { client } from "@/db"; // your mongodb client
+
+        export const auth = betterAuth({
+            database: mongodbAdapter(client),
+        });
+        ```
+      </Tab>
+    </Tabs>
+
+    <Callout>
+      If your database is not listed above, check out our other supported
+      [databases](/docs/adapters/other-relational-databases) for more information,
+      or use one of the supported ORMs.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Create Database Tables
+
+    Better Auth includes a CLI tool to help manage the schema required by the library.
+
+    * **Generate**: This command generates an ORM schema or SQL migration file.
+
+    <Callout>
+      If you're using Kysely, you can apply the migration directly with `migrate` command below. Use `generate` only if you plan to apply the migration manually.
+    </Callout>
+
+    ```bash title="Terminal"
+    npx @better-auth/cli generate
+    ```
+
+    * **Migrate**: This command creates the required tables directly in the database. (Available only for the built-in Kysely adapter)
+
+    ```bash title="Terminal"
+    npx @better-auth/cli migrate
+    ```
+
+    see the [CLI documentation](/docs/concepts/cli) for more information.
+
+    <Callout>
+      If you instead want to create the schema manually, you can find the core schema required in the [database section](/docs/concepts/database#core-schema).
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Authentication Methods
+
+    Configure the authentication methods you want to use. Better Auth comes with built-in support for email/password, and social sign-on providers.
+
+    ```ts title="auth.ts"
+    import { betterAuth } from "better-auth";
+
+    export const auth = betterAuth({
+      //...other options // [!code highlight]
+      emailAndPassword: { // [!code highlight]
+        enabled: true, // [!code highlight]
+      }, // [!code highlight]
+      socialProviders: { // [!code highlight]
+        github: { // [!code highlight]
+          clientId: process.env.GITHUB_CLIENT_ID as string, // [!code highlight]
+          clientSecret: process.env.GITHUB_CLIENT_SECRET as string, // [!code highlight]
+        }, // [!code highlight]
+      }, // [!code highlight]
+    });
+    ```
+
+    <Callout type="info">
+      You can use even more authentication methods like [passkey](/docs/plugins/passkey), [username](/docs/plugins/username), [magic link](/docs/plugins/magic-link) and more through plugins.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Mount Handler
+
+    To handle API requests, you need to set up a route handler on your server.
+
+    Create a new file or route in your framework's designated catch-all route handler. This route should handle requests for the path `/api/auth/*` (unless you've configured a different base path).
+
+    <Callout>
+      Better Auth supports any backend framework with standard Request and Response
+      objects and offers helper functions for popular frameworks.
+    </Callout>
+
+    <Tabs items={["next-js-app-router", "next-js-pages-router", "nuxt", "svelte-kit", "remix", "solid-start", "hono", "cloudflare-workers", "express", "elysia", "tanstack-start", "expo"]} defaultValue="next-js-app-router">
+      <Tab value="next-js-app-router">
+        ```ts title="/app/api/auth/[...all]/route.ts"
+        import { auth } from "@/lib/auth"; // path to your auth file
+        import { toNextJsHandler } from "better-auth/next-js";
+
+        export const { POST, GET } = toNextJsHandler(auth);
+        ```
+      </Tab>
+
+      <Tab value="next-js-pages-router">
+        ```ts title="/pages/api/auth/[...all].ts"
+        import { auth } from "@/lib/auth"; // path to your auth file
+        import { toNodeHandler } from "better-auth/node";
+
+        // Disallow body parsing, we will parse it manually
+        export const config = { api: { bodyParser: false } };
+        export default toNodeHandler(auth.handler);
+        ```
+      </Tab>
+
+      <Tab value="nuxt">
+        ```ts title="/server/api/auth/[...all].ts"
+        import { auth } from "~/utils/auth"; // path to your auth file
+
+        export default defineEventHandler((event) => {
+            return auth.handler(toWebRequest(event));
+        });
+        ```
+      </Tab>
+
+      <Tab value="svelte-kit">
+        ```ts title="hooks.server.ts"
+        import { auth } from "$lib/auth"; // path to your auth file
+        import { svelteKitHandler } from "better-auth/svelte-kit";
+        import { building } from '$app/environment'
+
+        export async function handle({ event, resolve }) {
+            return svelteKitHandler({ event, resolve, auth, building });
+        }
+        ```
+      </Tab>
+
+      <Tab value="remix">
+        ```ts title="/app/routes/api.auth.$.ts"
+        import { auth } from '~/lib/auth.server' // Adjust the path as necessary
+        import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node"
+
+        export async function loader({ request }: LoaderFunctionArgs) {
+            return auth.handler(request)
+        }
+
+        export async function action({ request }: ActionFunctionArgs) {
+            return auth.handler(request)
+        }
+        ```
+      </Tab>
+
+      <Tab value="solid-start">
+        ```ts title="/routes/api/auth/*all.ts"
+        import { auth } from "~/lib/auth"; // path to your auth file
+        import { toSolidStartHandler } from "better-auth/solid-start";
+
+        export const { GET, POST } = toSolidStartHandler(auth);
+        ```
+      </Tab>
+
+      <Tab value="hono">
+        ```ts title="src/index.ts"
+        import { Hono } from "hono";
+        import { auth } from "./auth"; // path to your auth file
+        import { serve } from "@hono/node-server";
+        import { cors } from "hono/cors";
+
+        const app = new Hono();
+
+        app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+
+        serve(app);
+        ```
+      </Tab>
+
+      <Tab value="cloudflare-workers">
+        ```ts title="src/index.ts"
+        import { auth } from "./auth"; // path to your auth file
+
+        export default {
+            async fetch(request: Request) {
+                const url = new URL(request.url);
+
+                // Handle auth routes
+                if (url.pathname.startsWith("/api/auth")) {
+                    return auth.handler(request);
+                }
+
+                // Handle other routes
+                return new Response("Not found", { status: 404 });
+            },
+        };
+        ```
+
+        <Callout type="info">
+          **Node.js AsyncLocalStorage Support**: Better Auth uses AsyncLocalStorage for async context tracking. To enable this in Cloudflare Workers, add the `nodejs_compat` flag to your `wrangler.toml`:
+
+          ```toml title="wrangler.toml"
+          compatibility_flags = ["nodejs_compat"]
+          compatibility_date = "2024-09-23"
+          ```
+
+          Alternatively, if you only need AsyncLocalStorage support:
+
+          ```toml title="wrangler.toml"
+          compatibility_flags = ["nodejs_als"]
+          ```
+
+          In the next major release, we will assume AsyncLocalStorage support by default, so this configuration will be necessary.
+        </Callout>
+      </Tab>
+
+      <Tab value="express">
+        <Callout type="warn">
+          ExpressJS v5 introduced breaking changes to route path matching by switching to `path-to-regexp@6`. Wildcard routes like `*` should now be written using the new named syntax, e.g. `/{*any}`, to properly capture catch-all patterns. This ensures compatibility and predictable behavior across routing scenarios.
+          See the [Express v5 migration guide](https://expressjs.com/en/guide/migrating-5.html) for details.
+
+          As a result, the implementation in ExpressJS v5 should look like this:
+
+          ```ts
+          app.all('/api/auth/{*any}', toNodeHandler(auth));
+          ```
+
+          *The name any is arbitrary and can be replaced with any identifier you prefer.*
+        </Callout>
+
+        ```ts title="server.ts"
+        import express from "express";
+        import { toNodeHandler } from "better-auth/node";
+        import { auth } from "./auth";
+
+        const app = express();
+        const port = 8000;
+
+        app.all("/api/auth/*", toNodeHandler(auth));
+
+        // Mount express json middleware after Better Auth handler
+        // or only apply it to routes that don't interact with Better Auth
+        app.use(express.json());
+
+        app.listen(port, () => {
+            console.log(`Better Auth app listening on port ${port}`);
+        });
+        ```
+
+        This will also work for any other node server framework like express, fastify, hapi, etc., but may require some modifications. See [fastify guide](/docs/integrations/fastify). Note that CommonJS (cjs) isn't supported.
+      </Tab>
+
+      <Tab value="astro">
+        ```ts title="/pages/api/auth/[...all].ts"
+        import type { APIRoute } from "astro";
+        import { auth } from "@/auth"; // path to your auth file
+
+        export const GET: APIRoute = async (ctx) => {
+            return auth.handler(ctx.request);
+        };
+
+        export const POST: APIRoute = async (ctx) => {
+            return auth.handler(ctx.request);
+        };
+        ```
+      </Tab>
+
+      <Tab value="elysia">
+        ```ts
+        import { Elysia, Context } from "elysia";
+        import { auth } from "./auth";
+
+        const betterAuthView = (context: Context) => {
+            const BETTER_AUTH_ACCEPT_METHODS = ["POST", "GET"]
+            // validate request method
+            if(BETTER_AUTH_ACCEPT_METHODS.includes(context.request.method)) {
+                return auth.handler(context.request);
+            } else {
+                context.error(405)
+            }
+        }
+
+        const app = new Elysia().all("/api/auth/*", betterAuthView).listen(3000);
+
+        console.log(
+        `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
+        );
+        ```
+      </Tab>
+
+      <Tab value="tanstack-start">
+        ```ts title="src/routes/api/auth/$.ts"
+        import { createFileRoute } from '@tanstack/react-router'
+        import { auth } from '@/lib/auth/auth'
+
+        export const Route = createFileRoute('/api/auth/$')({
+        server: {
+            handlers: {
+                GET: async ({ request }:{ request: Request }) => {
+                    return await auth.handler(request)
+                },
+                POST: async ({ request }:{ request: Request }) => {
+                    return await auth.handler(request)
+                },
+            },
+        },
+        })
+        ```
+      </Tab>
+
+      <Tab value="expo">
+        ```ts title="app/api/auth/[...all]+api.ts"
+        import { auth } from '@/lib/server/auth'; // path to your auth file
+
+        const handler = auth.handler;
+        export { handler as GET, handler as POST };
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step>
+    ### Create Client Instance
+
+    The client-side library helps you interact with the auth server. Better Auth comes with a client for all the popular web frameworks, including vanilla JavaScript.
+
+    1. Import `createAuthClient` from the package for your framework (e.g., "better-auth/react" for React).
+    2. Call the function to create your client.
+    3. Pass the base URL of your auth server. (If the auth server is running on the same domain as your client, you can skip this step.)
+
+    <Callout type="info">
+      If you're using a different base path other than `/api/auth` make sure to pass
+      the whole URL including the path. (e.g.
+      `http://localhost:3000/custom-path/auth`)
+    </Callout>
+
+    <Tabs
+      items={["react", "vue", "svelte", "solid",
+"vanilla"]}
+      defaultValue="react"
+    >
+      <Tab value="vanilla">
+        ```ts title="lib/auth-client.ts"
+        import { createAuthClient } from "better-auth/client"
+        export const authClient = createAuthClient({
+            /** The base URL of the server (optional if you're using the same domain) */ // [!code highlight]
+            baseURL: "http://localhost:3000" // [!code highlight]
+        })
+        ```
+      </Tab>
+
+      <Tab value="react" title="lib/auth-client.ts">
+        ```ts title="lib/auth-client.ts"
+        import { createAuthClient } from "better-auth/react"
+        export const authClient = createAuthClient({
+            /** The base URL of the server (optional if you're using the same domain) */ // [!code highlight]
+            baseURL: "http://localhost:3000" // [!code highlight]
+        })
+        ```
+      </Tab>
+
+      <Tab value="vue" title="lib/auth-client.ts">
+        ```ts title="lib/auth-client.ts"
+        import { createAuthClient } from "better-auth/vue"
+        export const authClient = createAuthClient({
+            /** The base URL of the server (optional if you're using the same domain) */ // [!code highlight]
+            baseURL: "http://localhost:3000" // [!code highlight]
+        })
+        ```
+      </Tab>
+
+      <Tab value="svelte" title="lib/auth-client.ts">
+        ```ts title="lib/auth-client.ts"
+        import { createAuthClient } from "better-auth/svelte"
+        export const authClient = createAuthClient({
+            /** The base URL of the server (optional if you're using the same domain) */ // [!code highlight]
+            baseURL: "http://localhost:3000" // [!code highlight]
+        })
+        ```
+      </Tab>
+
+      <Tab value="solid" title="lib/auth-client.ts">
+        ```ts title="lib/auth-client.ts"
+        import { createAuthClient } from "better-auth/solid"
+        export const authClient = createAuthClient({
+            /** The base URL of the server (optional if you're using the same domain) */ // [!code highlight]
+            baseURL: "http://localhost:3000" // [!code highlight]
+        })
+        ```
+      </Tab>
+    </Tabs>
+
+    <Callout type="info">
+      Tip: You can also export specific methods if you prefer:
+    </Callout>
+
+    ```ts
+    export const { signIn, signUp, useSession } = createAuthClient()
+    ```
+  </Step>
+
+  <Step>
+    ### 🎉 That's it!
+
+    That's it! You're now ready to use better-auth in your application. Continue to [basic usage](/docs/basic-usage) to learn how to use the auth instance to sign in users.
+  </Step>
+</Steps>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Basic Usage
+
+Getting started with Better Auth
+
+***
+
+title: Basic Usage
+description: Getting started with Better Auth
+---------------------------------------------
+
+Better Auth provides built-in authentication support for:
+
+* **Email and password**
+* **Social provider (Google, GitHub, Apple, and more)**
+
+But also can easily be extended using plugins, such as: [username](/docs/plugins/username), [magic link](/docs/plugins/magic-link), [passkey](/docs/plugins/passkey), [email-otp](/docs/plugins/email-otp), and more.
+
+## Email & Password
+
+To enable email and password authentication:
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth"
+
+export const auth = betterAuth({
+    emailAndPassword: {    // [!code highlight]
+        enabled: true // [!code highlight]
+    } // [!code highlight]
+})
+```
+
+### Sign Up
+
+To sign up a user you need to call the client method `signUp.email` with the user's information.
+
+```ts title="sign-up.ts"
+import { authClient } from "@/lib/auth-client"; //import the auth client // [!code highlight]
+
+const { data, error } = await authClient.signUp.email({
+        email, // user email address
+        password, // user password -> min 8 characters by default
+        name, // user display name
+        image, // User image URL (optional)
+        callbackURL: "/dashboard" // A URL to redirect to after the user verifies their email (optional)
+    }, {
+        onRequest: (ctx) => {
+            //show loading
+        },
+        onSuccess: (ctx) => {
+            //redirect to the dashboard or sign in page
+        },
+        onError: (ctx) => {
+            // display the error message
+            alert(ctx.error.message);
+        },
+});
+```
+
+By default, the users are automatically signed in after they successfully sign up. To disable this behavior you can set `autoSignIn` to `false`.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth"
+
+export const auth = betterAuth({
+    emailAndPassword: {
+    	enabled: true,
+    	autoSignIn: false //defaults to true // [!code highlight]
+  },
+})
+```
+
+### Sign In
+
+To sign a user in, you can use the `signIn.email` function provided by the client.
+
+```ts title="sign-in"
+const { data, error } = await authClient.signIn.email({
+        /**
+         * The user email
+         */
+        email,
+        /**
+         * The user password
+         */
+        password,
+        /**
+         * A URL to redirect to after the user verifies their email (optional)
+         */
+        callbackURL: "/dashboard",
+        /**
+         * remember the user session after the browser is closed. 
+         * @default true
+         */
+        rememberMe: false
+}, {
+    //callbacks
+})
+```
+
+<Callout type="warn">
+  Always invoke client methods from the client side. Don't call them from the server.
+</Callout>
+
+### Server-Side Authentication
+
+To authenticate a user on the server, you can use the `auth.api` methods.
+
+```ts title="server.ts"
+import { auth } from "./auth"; // path to your Better Auth server instance
+
+const response = await auth.api.signInEmail({
+    body: {
+        email,
+        password
+    },
+    asResponse: true // returns a response object instead of data
+});
+```
+
+<Callout>
+  If the server cannot return a response object, you'll need to manually parse and set cookies. But for frameworks like Next.js we provide [a plugin](/docs/integrations/next#server-action-cookies) to handle this automatically
+</Callout>
+
+## Social Sign-On
+
+Better Auth supports multiple social providers, including Google, GitHub, Apple, Discord, and more. To use a social provider, you need to configure the ones you need in the `socialProviders` option on your `auth` object.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+    socialProviders: { // [!code highlight]
+        github: { // [!code highlight]
+            clientId: process.env.GITHUB_CLIENT_ID!, // [!code highlight]
+            clientSecret: process.env.GITHUB_CLIENT_SECRET!, // [!code highlight]
+        } // [!code highlight]
+    }, // [!code highlight]
+})
+```
+
+### Sign in with social providers
+
+To sign in using a social provider you need to call `signIn.social`. It takes an object with the following properties:
+
+```ts title="sign-in.ts"
+import { authClient } from "@/lib/auth-client"; //import the auth client // [!code highlight]
+
+await authClient.signIn.social({
+    /**
+     * The social provider ID
+     * @example "github", "google", "apple"
+     */
+    provider: "github",
+    /**
+     * A URL to redirect after the user authenticates with the provider
+     * @default "/"
+     */
+    callbackURL: "/dashboard", 
+    /**
+     * A URL to redirect if an error occurs during the sign in process
+     */
+    errorCallbackURL: "/error",
+    /**
+     * A URL to redirect if the user is newly registered
+     */
+    newUserCallbackURL: "/welcome",
+    /**
+     * disable the automatic redirect to the provider. 
+     * @default false
+     */
+    disableRedirect: true,
+});
+```
+
+You can also authenticate using `idToken` or `accessToken` from the social provider instead of redirecting the user to the provider's site. See social providers documentation for more details.
+
+## Signout
+
+To signout a user, you can use the `signOut` function provided by the client.
+
+```ts title="user-card.tsx"
+await authClient.signOut();
+```
+
+you can pass `fetchOptions` to redirect onSuccess
+
+```ts title="user-card.tsx" 
+await authClient.signOut({
+  fetchOptions: {
+    onSuccess: () => {
+      router.push("/login"); // redirect to login page
+    },
+  },
+});
+```
+
+## Session
+
+Once a user is signed in, you'll want to access the user session. Better Auth allows you to easily access the session data from both the server and client sides.
+
+### Client Side
+
+#### Use Session
+
+Better Auth provides a `useSession` hook to easily access session data on the client side. This hook is implemented using nanostore and has support for each supported framework and vanilla client, ensuring that any changes to the session (such as signing out) are immediately reflected in your UI.
+
+<Tabs items={["React", "Vue","Svelte", "Solid", "Vanilla"]} defaultValue="react">
+  <Tab value="React">
+    ```tsx title="user.tsx"
+    import { authClient } from "@/lib/auth-client" // import the auth client // [!code highlight] 
+
+    export function User(){
+
+        const { // [!code highlight]
+            data: session, // [!code highlight]
+            isPending, //loading state // [!code highlight]
+            error, //error object // [!code highlight]
+            refetch //refetch the session
+        } = authClient.useSession() // [!code highlight]
+
+        return (
+            //...
+        )
+    }
+    ```
+  </Tab>
+
+  <Tab value="Vue">
+    ```vue title="index.vue"
+    <script setup lang="ts">
+    import { authClient } from "~/lib/auth-client" // [!code highlight]
+
+    const session = authClient.useSession() // [!code highlight]
+    </script>
+
+    <template>
+        <div>
+            <div>
+                <pre>{{ session.data }}</pre>
+                <button v-if="session.data" @click="authClient.signOut()">
+                    Sign out
+                </button>
+            </div>
+        </div>
+    </template>
+    ```
+  </Tab>
+
+  <Tab value="Svelte">
+    ```svelte title="user.svelte"
+    <script lang="ts">
+    import { authClient } from "$lib/auth-client"; // [!code highlight]
+
+    const session = authClient.useSession(); // [!code highlight]
+    </script>
+    <p>
+        {$session.data?.user.email}
+    </p>
+    ```
+  </Tab>
+
+  <Tab value="Vanilla">
+    ```ts title="user.svelte"
+    import { authClient } from "~/lib/auth-client"; //import the auth client
+
+    authClient.useSession.subscribe((value)=>{
+        //do something with the session //
+    }) 
+    ```
+  </Tab>
+
+  <Tab value="Solid">
+    ```tsx title="user.tsx"
+    import { authClient } from "~/lib/auth-client"; // [!code highlight]
+
+    export default function Home() {
+        const session = authClient.useSession() // [!code highlight]
+        return (
+            <pre>{JSON.stringify(session(), null, 2)}</pre>
+        );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+#### Get Session
+
+If you prefer not to use the hook, you can use the `getSession` method provided by the client.
+
+```ts title="user.tsx"
+import { authClient } from "@/lib/auth-client" // import the auth client // [!code highlight]
+
+const { data: session, error } = await authClient.getSession()
+```
+
+You can also use it with client-side data-fetching libraries like [TanStack Query](https://tanstack.com/query/latest).
+
+### Server Side
+
+The server provides a `session` object that you can use to access the session data. It requires request headers object to be passed to the `getSession` method.
+
+**Example: Using some popular frameworks**
+
+<Tabs items={["Next.js", "Nuxt", "Svelte", "Astro", "Hono", "TanStack"]}>
+  <Tab value="Next.js">
+    ```ts title="server.ts"
+    import { auth } from "./auth"; // path to your Better Auth server instance
+    import { headers } from "next/headers";
+
+    const session = await auth.api.getSession({
+        headers: await headers() // you need to pass the headers object.
+    })
+    ```
+  </Tab>
+
+  <Tab value="Remix">
+    ```ts title="route.ts"
+    import { auth } from "lib/auth"; // path to your Better Auth server instance
+
+    export async function loader({ request }: LoaderFunctionArgs) {
+        const session = await auth.api.getSession({
+            headers: request.headers
+        })
+
+        return json({ session })
+    }
+    ```
+  </Tab>
+
+  <Tab value="Astro">
+    ```astro title="index.astro"
+    ---
+    import { auth } from "./auth";
+
+    const session = await auth.api.getSession({
+        headers: Astro.request.headers,
+    });
+    ---
+    <!-- Your Astro Template -->
+    ```
+  </Tab>
+
+  <Tab value="Svelte">
+    ```ts title="+page.ts"
+    import { auth } from "./auth";
+
+    export async function load({ request }) {
+        const session = await auth.api.getSession({
+            headers: request.headers
+        })
+        return {
+            props: {
+                session
+            }
+        }
+    }
+    ```
+  </Tab>
+
+  <Tab value="Hono">
+    ```ts title="index.ts"
+    import { auth } from "./auth";
+
+    const app = new Hono();
+
+    app.get("/path", async (c) => {
+        const session = await auth.api.getSession({
+            headers: c.req.raw.headers
+        })
+    });
+    ```
+  </Tab>
+
+  <Tab value="Nuxt">
+    ```ts title="server/session.ts"
+    import { auth } from "~/utils/auth";
+
+    export default defineEventHandler((event) => {
+        const session = await auth.api.getSession({
+            headers: event.headers,
+        })
+    });
+    ```
+  </Tab>
+
+  <Tab value="TanStack">
+    ```ts title="app/routes/api/index.ts"
+    import { auth } from "./auth";
+    import { createAPIFileRoute } from "@tanstack/start/api";
+
+    export const APIRoute = createAPIFileRoute("/api/$")({
+        GET: async ({ request }) => {
+            const session = await auth.api.getSession({
+                headers: request.headers
+            })
+        },
+    });
+    ```
+  </Tab>
+</Tabs>
+
+<Callout>
+  For more details check [session-management](/docs/concepts/session-management) documentation.
+</Callout>
+
+## Using Plugins
+
+One of the unique features of Better Auth is a plugins ecosystem. It allows you to add complex auth related functionality with small lines of code.
+
+Below is an example of how to add two factor authentication using two factor plugin.
+
+<Steps>
+  <Step>
+    ### Server Configuration
+
+    To add a plugin, you need to import the plugin and pass it to the `plugins` option of the auth instance. For example, to add two factor authentication, you can use the following code:
+
+    ```ts title="auth.ts"
+    import { betterAuth } from "better-auth"
+    import { twoFactor } from "better-auth/plugins" // [!code highlight]
+
+    export const auth = betterAuth({
+        //...rest of the options
+        plugins: [ // [!code highlight]
+            twoFactor() // [!code highlight]
+        ] // [!code highlight]
+    })
+    ```
+
+    now two factor related routes and method will be available on the server.
+  </Step>
+
+  <Step>
+    ### Migrate Database
+
+    After adding the plugin, you'll need to add the required tables to your database. You can do this by running the `migrate` command, or by using the `generate` command to create the schema and handle the migration manually.
+
+    generating the schema:
+
+    ```bash title="terminal"
+    npx @better-auth/cli generate
+    ```
+
+    using the `migrate` command:
+
+    ```bash title="terminal"
+    npx @better-auth/cli migrate
+    ```
+
+    <Callout>
+      If you prefer adding the schema manually, you can check the schema required on the [two factor plugin](/docs/plugins/2fa#schema) documentation.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Client Configuration
+
+    Once we're done with the server, we need to add the plugin to the client. To do this, you need to import the plugin and pass it to the `plugins` option of the auth client. For example, to add two factor authentication, you can use the following code:
+
+    ```ts title="auth-client.ts"  
+    import { createAuthClient } from "better-auth/client";
+    import { twoFactorClient } from "better-auth/client/plugins"; // [!code highlight]
+
+    const authClient = createAuthClient({
+        plugins: [ // [!code highlight]
+            twoFactorClient({ // [!code highlight]
+                twoFactorPage: "/two-factor" // the page to redirect if a user needs to verify 2nd factor // [!code highlight]
+            }) // [!code highlight]
+        ] // [!code highlight]
+    })
+    ```
+
+    now two factor related methods will be available on the client.
+
+    ```ts title="profile.ts"
+    import { authClient } from "./auth-client"
+
+    const enableTwoFactor = async() => {
+        const data = await authClient.twoFactor.enable({
+            password // the user password is required
+        }) // this will enable two factor
+    }
+
+    const disableTwoFactor = async() => {
+        const data = await authClient.twoFactor.disable({
+            password // the user password is required
+        }) // this will disable two factor
+    }
+
+    const signInWith2Factor = async() => {
+        const data = await authClient.signIn.email({
+            //...
+        })
+        //if the user has two factor enabled, it will redirect to the two factor page
+    }
+
+    const verifyTOTP = async() => {
+        const data = await authClient.twoFactor.verifyTOTP({
+            code: "123456", // the code entered by the user 
+            /**
+             * If the device is trusted, the user won't
+             * need to pass 2FA again on the same device
+             */
+            trustDevice: true
+        })
+    }
+    ```
+  </Step>
+
+  <Step>
+    Next step: See the <Link href="/docs/plugins/2fa">two factor plugin documentation</Link>.
+  </Step>
+</Steps>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Email
+
+Learn how to use email with Better Auth.
+
+***
+
+title: Email
+description: Learn how to use email with Better Auth.
+-----------------------------------------------------
+
+Email is a key part of Better Auth, required for all users regardless of their authentication method. Better Auth provides email and password authentication out of the box, and a lot of utilities to help you manage email verification, password reset, and more.
+
+## Email Verification
+
+Email verification is a security feature that ensures users provide a valid email address. It helps prevent spam and abuse by confirming that the email address belongs to the user. In this guide, you'll get a walk through of how to implement token based email verification in your app.
+To use otp based email verification, check out the [OTP Verification](/docs/plugins/email-otp) guide.
+
+### Adding Email Verification to Your App
+
+To enable email verification, you need to pass a function that sends a verification email with a link.
+
+* **sendVerificationEmail**: This function is triggered when email verification starts. It accepts a data object with the following properties:
+  * `user`: The user object containing the email address.
+  * `url`: The verification URL the user must click to verify their email.
+  * `token`: The verification token used to complete the email verification to be used when implementing a custom verification URL.
+
+and a `request` object as the second parameter.
+
+```ts title="auth.ts"
+import { betterAuth } from 'better-auth';
+import { sendEmail } from './email'; // your email sending function
+
+export const auth = betterAuth({
+    emailVerification: {
+        sendVerificationEmail: async ({ user, url, token }, request) => {
+            await sendEmail({
+                to: user.email,
+                subject: 'Verify your email address',
+                text: `Click the link to verify your email: ${url}`
+            })
+        }
+    }
+})
+```
+
+### Triggering Email Verification
+
+You can initiate email verification in several ways:
+
+#### 1. During Sign-up
+
+To automatically send a verification email at signup, set `emailVerification.sendOnSignUp` to `true`.
+
+```ts title="auth.ts"
+import { betterAuth } from 'better-auth';
+
+export const auth = betterAuth({
+    emailVerification: {
+        sendOnSignUp: true
+    }
+})
+```
+
+This sends a verification email when a user signs up. For social logins, email verification status is read from the SSO.
+
+<Callout>
+  With `sendOnSignUp` enabled, when the user logs in with an SSO that does not claim the email as verified, Better Auth will dispatch a verification email, but the verification is not required to login even when `requireEmailVerification` is enabled.
+</Callout>
+
+#### 2. Require Email Verification
+
+If you enable require email verification, users must verify their email before they can log in. And every time a user tries to sign in, `sendVerificationEmail` is called.
+
+<Callout>
+  This only works if you have `sendVerificationEmail` implemented, if `sendOnSignIn` is set to true and if the user is trying to sign in with email and password.
+</Callout>
+
+```ts title="auth.ts"
+export const auth = betterAuth({
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: "Verify your email address",
+        text: `Click the link to verify your email: ${url}`,
+      });
+    },
+    sendOnSignIn: true,
+  },
+  emailAndPassword: {
+    requireEmailVerification: true,
+  },
+});
+```
+
+If a user tries to sign in without verifying their email, you can handle the error and show a message to the user.
+
+```ts title="auth-client.ts"
+await authClient.signIn.email({
+    email: "email@example.com",
+    password: "password"
+}, {
+    onError: (ctx) => {
+        // Handle the error
+        if(ctx.error.status === 403) {
+            alert("Please verify your email address")
+        }
+        //you can also show the original error message
+        alert(ctx.error.message)
+    }
+})
+```
+
+#### 3. Manually
+
+You can also manually trigger email verification by calling `sendVerificationEmail`.
+
+```ts
+await authClient.sendVerificationEmail({
+    email: "user@email.com",
+    callbackURL: "/" // The redirect URL after verification
+})
+```
+
+### Verifying the Email
+
+If the user clicks the provided verification URL, their email is automatically verified, and they are redirected to the `callbackURL`.
+
+For manual verification, you can send the user a custom link with the `token` and call the `verifyEmail` function.
+
+```ts
+await authClient.verifyEmail({
+    query: {
+        token: "" // Pass the token here
+    }
+})
+```
+
+### Auto Sign In After Verification
+
+To sign in the user automatically after they successfully verify their email, set the `autoSignInAfterVerification` option to `true`:
+
+```ts
+const auth = betterAuth({
+    //...your other options
+    emailVerification: {
+        autoSignInAfterVerification: true
+    }
+})
+```
+
+### Callback after successful email verification
+
+You can run custom code immediately after a user verifies their email using the `afterEmailVerification` callback. This is useful for any side-effects you want to trigger, like granting access to special features or logging the event.
+
+The `afterEmailVerification` function runs automatically when a user's email is confirmed, receiving the `user` object and `request` details so you can perform actions for that specific user.
+
+Here's how you can set it up:
+
+```ts title="auth.ts"
+import { betterAuth } from 'better-auth';
+
+export const auth = betterAuth({
+    emailVerification: {
+        async afterEmailVerification(user, request) {
+            // Your custom logic here, e.g., grant access to premium features
+            console.log(`${user.email} has been successfully verified!`);
+        }
+    }
+})
+```
+
+## Password Reset Email
+
+Password reset allows users to reset their password if they forget it. Better Auth provides a simple way to implement password reset functionality.
+
+You can enable password reset by passing a function that sends a password reset email with a link.
+
+```ts title="auth.ts"
+import { betterAuth } from 'better-auth';
+import { sendEmail } from './email'; // your email sending function
+
+export const auth = betterAuth({
+    emailAndPassword: {
+        enabled: true,
+        sendResetPassword: async ({ user, url, token }, request) => {
+            await sendEmail({
+                to: user.email,
+                subject: 'Reset your password',
+                text: `Click the link to reset your password: ${url}`
+            })
+        }
+    }
+})
+```
+
+Check out the [Email and Password](/docs/authentication/email-password#forget-password) guide for more details on how to implement password reset in your app.
+Also you can check out the [Otp verification](/docs/plugins/email-otp#reset-password) guide for how to implement password reset with OTP in your app.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# OAuth
+
+How Better Auth handles OAuth
+
+***
+
+title: OAuth
+description: How Better Auth handles OAuth
+------------------------------------------
+
+Better Auth comes with built-in support for OAuth 2.0 and OpenID Connect. This allows you to authenticate users via popular OAuth providers like Google, Facebook, GitHub, and more.
+
+If your desired provider isn't directly supported, you can use the [Generic OAuth Plugin](/docs/plugins/generic-oauth) for custom integrations.
+
+## Configuring Social Providers
+
+To enable a social provider, you need to provide `clientId` and `clientSecret` for the provider.
+
+Here's an example of how to configure Google as a provider:
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+  // Other configurations...
+  socialProviders: {
+    google: {
+      clientId: "YOUR_GOOGLE_CLIENT_ID",
+      clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
+    },
+  },
+});
+```
+
+## Usage
+
+### Sign In
+
+To sign in with a social provider, you can use the `signIn.social` function with the `authClient` or `auth.api` for server-side usage.
+
+```ts
+// client-side usage
+await authClient.signIn.social({
+  provider: "google", // or any other provider id
+})
+```
+
+```ts
+// server-side usage
+await auth.api.signInSocial({
+  body: {
+    provider: "google", // or any other provider id
+  },
+});
+```
+
+### Link account
+
+To link an account to a social provider, you can use the `linkAccount` function with the `authClient` or `auth.api` for server-side usage.
+
+```ts
+await authClient.linkSocial({
+  provider: "google", // or any other provider id
+})
+```
+
+server-side usage:
+
+```ts
+await auth.api.linkSocialAccount({
+  body: {
+    provider: "google", // or any other provider id
+  },
+  headers: // pass headers with authenticated token
+});
+```
+
+### Get Access Token
+
+To get the access token for a social provider, you can use the `getAccessToken` function with the `authClient` or `auth.api` for server-side usage. When you use this endpoint, if the access token is expired, it will be refreshed.
+
+```ts
+const { accessToken } = await authClient.getAccessToken({
+  providerId: "google", // or any other provider id
+  accountId: "accountId", // optional, if you want to get the access token for a specific account
+})
+```
+
+server-side usage:
+
+```ts
+await auth.api.getAccessToken({
+  body: {
+    providerId: "google", // or any other provider id
+    accountId: "accountId", // optional, if you want to get the access token for a specific account
+    userId: "userId", // optional, if you don't provide headers with authenticated token
+  },
+  headers: // pass headers with authenticated token
+});
+```
+
+### Get Account Info Provided by the provider
+
+To get provider specific account info you can use the `accountInfo` function with the `authClient` or `auth.api` for server-side usage.
+
+```ts
+const info = await authClient.accountInfo({
+  accountId: "accountId", // here you pass in the provider given account id, the provider is automatically detected from the account id
+})
+```
+
+server-side usage:
+
+```ts
+await auth.api.accountInfo({
+  body: { accountId: "accountId" },
+  headers: // pass headers with authenticated token
+});
+```
+
+### Requesting Additional Scopes
+
+Sometimes your application may need additional OAuth scopes after the user has already signed up (e.g., for accessing GitHub repositories or Google Drive). Users may not want to grant extensive permissions initially, preferring to start with minimal permissions and grant additional access as needed.
+
+You can request additional scopes by using the `linkSocial` method with the same provider. This will trigger a new OAuth flow that requests the additional scopes while maintaining the existing account connection.
+
+```ts
+const requestAdditionalScopes = async () => {
+    await authClient.linkSocial({
+        provider: "google",
+        scopes: ["https://www.googleapis.com/auth/drive.file"],
+    });
+};
+```
+
+<Callout>
+  Make sure you're running Better Auth version 1.2.7 or later. Earlier versions (like 1.2.2) may show a "Social account already linked" error when trying to link with an existing provider for additional scopes.
+</Callout>
+
+### Passing Additional Data Through OAuth Flow
+
+Better Auth allows you to pass additional data through the OAuth flow without storing it in the database. This is useful for scenarios like tracking referral codes, analytics sources, or other temporary data that should be processed during authentication but not persisted.
+
+When initiating OAuth sign-in or account linking, pass the additional data:
+
+```ts
+// Client-side: Sign in with additional data
+await authClient.signIn.social({
+  provider: "google",
+  additionalData: {
+    referralCode: "ABC123",
+    source: "landing-page",
+  },
+});
+
+// Client-side: Link account with additional data
+await authClient.linkSocial({
+  provider: "google",
+  additionalData: {
+    referralCode: "ABC123",
+  },
+});
+
+// Server-side: Sign in with additional data
+await auth.api.signInSocial({
+  body: {
+    provider: "google",
+    additionalData: {
+      referralCode: "ABC123",
+      source: "admin-panel",
+    },
+  },
+});
+```
+
+#### Accessing Additional Data in Hooks
+
+The additional data is available in your hooks during the OAuth callback through the `getOAuthState`.
+
+<Callout>
+  This usually works for `/callback/:id` paths and the generic OAuth plugin callback path (`/oauth2/callback/:providerId`).
+</Callout>
+
+Example using a before hook:
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+import { getOAuthState } from "better-auth/api";
+
+export const auth = betterAuth({
+  // Other configurations...
+  hooks: {
+    after: [
+      {
+        matcher: () => true,
+        handler: async (ctx) => {
+          // Additional data is only available during OAuth callback
+          if (ctx.path === "/callback/:id") {
+            const additionalData = await getOAuthState<{
+              referralCode?: string;
+              source?: string;
+            }>();
+
+            if (additionalData) {
+              // IMPORTANT: Validate and sanitize the data before using it
+              // This data comes from the client and should not be trusted
+
+              // Example: Validate and process referral code
+              if (additionalData.referralCode) {
+                const isValidFormat = /^[A-Z0-9]{6}$/.test(additionalData.referralCode);
+                if (isValidFormat) {
+                  // Verify the referral code exists in your database
+                  const referral = await db.referrals.findByCode(additionalData.referralCode);
+                  if (referral) {
+                    // Safe to use the verified referral
+                    await db.referrals.incrementUsage(referral.id);
+                  }
+                }
+              }
+
+              // Track analytics (low-risk usage)
+              if (additionalData.source) {
+                await analytics.track("oauth_signin", {
+                  source: additionalData.source,
+                  userId: ctx.context.session?.user.id,
+                });
+              }
+            }
+          }
+        },
+      },
+    ],
+  },
+});
+```
+
+Example using a database hook:
+
+```ts title="auth.ts"
+ // You can also access additional data in database hooks
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user, ctx) => {
+          if (ctx.path === "/callback/:id") {
+            const additionalData = await getOAuthState<{ referredFrom?: string }>();
+            if (additionalData?.referredFrom) {
+              return {
+                data: {
+                  referredFrom: additionalData.referredFrom,
+                },
+              };
+            }
+          }
+        },
+      },
+    },
+  },
+```
+
+<Callout>
+  By default OAuth state includes the following data:
+
+  * `callbackURL` - the callback URL for the OAuth flow
+  * `codeVerifier` - the code verifier for the OAuth flow
+  * `errorURL` - the error URL for the OAuth flow
+  * `newUserURL` - the new user URL for the OAuth flow
+  * `link` - the link for the OAuth flow (email and user id)
+  * `requestSignUp` - whether to request sign up for the OAuth flow
+  * `expiresAt` - the expiration time of the OAuth state
+  * `[key: string]`: any additional data you pass in the OAuth flow
+</Callout>
+
+## Provider Options
+
+### scope
+
+The scope of the access request. For example, `email` or `profile`.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+  // Other configurations...
+  socialProviders: {
+    google: {
+      clientId: "YOUR_GOOGLE_CLIENT_ID",
+      clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
+      scope: ["email", "profile"],
+    },
+  },
+});
+```
+
+### redirectURI
+
+Custom redirect URI for the provider. By default, it uses `/api/auth/callback/${providerName}`
+
+```ts title="auth.ts"
+
+export const auth = betterAuth({
+  // Other configurations...
+  socialProviders: {
+    google: {
+      clientId: "YOUR_GOOGLE_CLIENT_ID",
+      clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
+      redirectURI: "https://your-app.com/auth/callback",
+    },
+  },
+});
+```
+
+### disableSignUp
+
+Disables sign-up for new users.
+
+### disableIdTokenSignIn
+
+Disables the use of the ID token for sign-in. By default, it's enabled for some providers like Google and Apple.
+
+### verifyIdToken
+
+A custom function to verify the ID token.
+
+### overrideUserInfoOnSignIn
+
+A boolean value that determines whether to override the user information in the database when signing in. By default, it is set to `false`, meaning that the user information will not be overridden during sign-in. If you want to update the user information every time they sign in, set this to `true`.
+
+### mapProfileToUser
+
+A custom function to map the user profile returned from the provider to the user object in your database.
+
+Useful, if you have additional fields in your user object you want to populate from the provider's profile. Or if you want to change how by default the user object is mapped.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+  // Other configurations...
+  socialProviders: {
+    google: {
+      clientId: "YOUR_GOOGLE_CLIENT_ID",
+      clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
+      mapProfileToUser: (profile) => {
+        return {
+          firstName: profile.given_name,
+          lastName: profile.family_name,
+        };
+      },
+    },
+  },
+});
+```
+
+### refreshAccessToken
+
+A custom function to refresh the token. This feature is only supported for built-in social providers (Google, Facebook, GitHub, etc.) and is not currently supported for custom OAuth providers configured through the Generic OAuth Plugin. For built-in providers, you can provide a custom function to refresh the token if needed.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+  // Other configurations...
+  socialProviders: {
+    google: {
+      clientId: "YOUR_GOOGLE_CLIENT_ID",
+      clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
+      refreshAccessToken: async (token) => {
+        return {
+          accessToken: "new-access-token",
+          refreshToken: "new-refresh-token",
+        };
+      },
+    },
+  },
+});
+```
+
+### clientKey
+
+The client key of your application. This is used by TikTok Social Provider instead of `clientId`.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+  // Other configurations...
+  socialProviders: {
+    tiktok: {
+      clientKey: "YOUR_TIKTOK_CLIENT_KEY",
+      clientSecret: "YOUR_TIKTOK_CLIENT_SECRET",
+    },
+  },
+});
+```
+
+### getUserInfo
+
+A custom function to get user info from the provider. This allows you to override the default user info retrieval process.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+  // Other configurations...
+  socialProviders: {
+    google: {
+      clientId: "YOUR_GOOGLE_CLIENT_ID",
+      clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
+      getUserInfo: async (token) => {
+        // Custom implementation to get user info
+        const response = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+          headers: {
+            Authorization: `Bearer ${token.accessToken}`,
+          },
+        });
+        const profile = await response.json();
+        return {
+          user: {
+            id: profile.id,
+            name: profile.name,
+            email: profile.email,
+            image: profile.picture,
+            emailVerified: profile.verified_email,
+          },
+          data: profile,
+        };
+      },
+    },
+  },
+});
+```
+
+### disableImplicitSignUp
+
+Disables implicit sign up for new users. When set to true for the provider, sign-in needs to be called with `requestSignUp` as true to create new users.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+  // Other configurations...
+  socialProviders: {
+    google: {
+      clientId: "YOUR_GOOGLE_CLIENT_ID",
+      clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
+      disableImplicitSignUp: true,
+    },
+  },
+});
+```
+
+### prompt
+
+The prompt to use for the authorization code request. This controls the authentication flow behavior.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+  // Other configurations...
+  socialProviders: {
+    google: {
+      clientId: "YOUR_GOOGLE_CLIENT_ID",
+      clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
+      prompt: "select_account", // or "consent", "login", "none", "select_account+consent"
+    },
+  },
+});
+```
+
+### responseMode
+
+The response mode to use for the authorization code request. This determines how the authorization response is returned.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+  // Other configurations...
+  socialProviders: {
+    google: {
+      clientId: "YOUR_GOOGLE_CLIENT_ID",
+      clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
+      responseMode: "query", // or "form_post"
+    },
+  },
+});
+```
+
+### disableDefaultScope
+
+Removes the default scopes of the provider. By default, providers include certain scopes like `email` and `profile`. Set this to `true` to remove these default scopes and use only the scopes you specify.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+  // Other configurations...
+  socialProviders: {
+    google: {
+      clientId: "YOUR_GOOGLE_CLIENT_ID",
+      clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
+      disableDefaultScope: true,
+      scope: ["https://www.googleapis.com/auth/userinfo.email"], // Only this scope will be used
+    },
+  },
+});
+```
+
+### Other Provider Configurations
+
+Each provider may have additional options, check the specific provider documentation for more details.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Google
+
+Google provider setup and usage.
+
+***
+
+title: Google
+description: Google provider setup and usage.
+---------------------------------------------
+
+<Steps>
+  <Step>
+    ### Get your Google credentials
+
+    To use Google as a social provider, you need to get your Google credentials. You can get them by creating a new project in the [Google Cloud Console](https://console.cloud.google.com/apis/dashboard).
+
+    In the Google Cloud Console > Credentials > Authorized redirect URIs, make sure to set the redirect URL to `http://localhost:3000/api/auth/callback/google` for local development. For production, make sure to set the redirect URL as your application domain, e.g. `https://example.com/api/auth/callback/google`. If you change the base path of the auth routes, you should update the redirect URL accordingly.
+
+    <Callout type="info">
+      **Creating Your Google OAuth Credentials**
+
+      If you haven't created OAuth credentials yet, follow these step-by-step instructions:
+
+      1. Open **Google Cloud Console** → **APIs & Services** → **Credentials**
+      2. Click **Create Credentials** → **OAuth client ID**
+      3. Choose **Web application**
+      4. Add your redirect URIs:
+         * `http://localhost:3000/api/auth/callback/google` (for local development)
+         * `https://your-domain.com/api/auth/callback/google` (for production)
+      5. Copy the **Client ID** and **Client Secret** into your environment variables
+
+      These steps avoid common issues such as `redirect_uri_mismatch`.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Configure the provider
+
+    To configure the provider, you need to pass the `clientId` and `clientSecret` to `socialProviders.google` in your auth configuration.
+
+    ```ts title="auth.ts"
+    import { betterAuth } from "better-auth"
+
+    export const auth = betterAuth({
+        socialProviders: {
+            google: { // [!code highlight]
+                clientId: process.env.GOOGLE_CLIENT_ID as string, // [!code highlight]
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET as string, // [!code highlight]
+            }, // [!code highlight]
+        },
+    })
+    ```
+  </Step>
+</Steps>
+
+## Usage
+
+### Sign In with Google
+
+To sign in with Google, you can use the `signIn.social` function provided by the client. The `signIn` function takes an object with the following properties:
+
+* `provider`: The provider to use. It should be set to `google`.
+
+```ts title="auth-client.ts"  /
+import { createAuthClient } from "better-auth/client";
+const authClient = createAuthClient();
+
+const signIn = async () => {
+  const data = await authClient.signIn.social({
+    provider: "google",
+  });
+};
+```
+
+### Sign In with Google With ID Token
+
+To sign in with Google using the ID Token, you can use the `signIn.social` function to pass the ID Token.
+
+This is useful when you have the ID Token from Google on the client-side and want to use it to sign in on the server.
+
+<Callout>
+  If ID token is provided no redirection will happen, and the user will be
+  signed in directly.
+</Callout>
+
+```ts title="auth-client.ts"
+const data = await authClient.signIn.social({
+    provider: "google",
+    idToken: {
+        token: // Google ID Token,
+        accessToken: // Google Access Token
+    }
+})
+```
+
+<Callout>
+  If you want to use google one tap, you can use the [One Tap
+  Plugin](/docs/plugins/one-tap) guide.
+</Callout>
+
+### Always ask to select an account
+
+If you want to always ask the user to select an account, you pass the `prompt` parameter to the provider, setting it to `select_account`.
+
+```ts
+socialProviders: {
+    google: {
+        prompt: "select_account", // [!code highlight]
+        clientId: process.env.GOOGLE_CLIENT_ID as string,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
+}
+```
+
+### Requesting Additional Google Scopes
+
+If your application needs additional Google scopes after the user has already signed up (e.g., for Google Drive, Gmail, or other Google services), you can request them using the `linkSocial` method with the same Google provider.
+
+```tsx title="auth-client.ts"
+const requestGoogleDriveAccess = async () => {
+  await authClient.linkSocial({
+    provider: "google",
+    scopes: ["https://www.googleapis.com/auth/drive.file"],
+  });
+};
+
+// Example usage in a React component
+return (
+  <button onClick={requestGoogleDriveAccess}>
+    Add Google Drive Permissions
+  </button>
+);
+```
+
+This will trigger a new OAuth flow that requests the additional scopes. After completion, your account will have the new scope in the database, and the access token will give you access to the requested Google APIs.
+
+<Callout>
+  Ensure you're using Better Auth version 1.2.7 or later to avoid "Social
+  account already linked" errors when requesting additional scopes from the same
+  provider.
+</Callout>
+
+### Always get refresh token
+
+Google only issues a refresh token the first time a user consents to your app.
+If the user has already authorized your app, subsequent OAuth flows will only return an access token, not a refresh token.
+
+To always get a refresh token, you can set the `accessType` to `offline`, and `prompt` to `select_account consent` in the provider options.
+
+```ts
+socialProviders: {
+    google: {
+        clientId: process.env.GOOGLE_CLIENT_ID as string,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+        accessType: "offline", // [!code highlight]
+        prompt: "select_account consent", // [!code highlight]
+    },
+}
+```
+
+<Callout>
+  **Revoking Access:** If you want to get a new refresh token for a user who has
+  already authorized your app, you must have them revoke your app's access in
+  their Google account settings, then re-authorize.
+</Callout>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Prisma
+
+Integrate Better Auth with Prisma.
+
+***
+
+title: Prisma
+description: Integrate Better Auth with Prisma.
+-----------------------------------------------
+
+Prisma ORM is an open-source database toolkit that simplifies database access and management in applications by providing a type-safe query builder and an intuitive data modeling interface.
+Read more [here](https://www.prisma.io/).
+
+## Example Usage
+
+Make sure you have Prisma installed and configured.
+Then, you can use the Prisma adapter to connect to your database.
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export const auth = betterAuth({
+  database: prismaAdapter(prisma, {
+    provider: "sqlite",
+  }),
+});
+```
+
+<Callout type="warning">
+  If you have configured a custom output directory in your `schema.prisma` file (e.g., `output = "../src/generated/prisma"`), make sure to import the Prisma client from that location instead of `@prisma/client`. Learn more about custom output directories in the [Prisma documentation](https://www.prisma.io/docs/guides/nextjs#21-install-prisma-orm-and-create-your-first-models).
+</Callout>
+
+## Schema generation & migration
+
+The [Better Auth CLI](/docs/concepts/cli) allows you to generate or migrate
+your database schema based on your Better Auth configuration and plugins.
+
+<table>
+  <thead>
+    <tr className="border-b">
+      <th>
+        <p className="font-bold text-[16px] mb-1">Prisma Schema Generation</p>
+      </th>
+
+      <th>
+        <p className="font-bold text-[16px] mb-1">Prisma Schema Migration</p>
+      </th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr className="h-10">
+      <td>✅ Supported</td>
+      <td>❌ Not Supported</td>
+    </tr>
+  </tbody>
+</table>
+
+```bash title="Schema Generation"
+npx @better-auth/cli@latest generate
+```
+
+## Joins (Experimental)
+
+Database joins is useful when Better-Auth needs to fetch related data from multiple tables in a single query.
+Endpoints like `/get-session`, `/get-full-organization` and many others benefit greatly from this feature,
+seeing upwards of 2x to 3x performance improvements depending on database latency.
+
+The Prisma adapter supports joins out of the box since version `1.4.0`.
+To enable this feature, you need to set the `experimental.joins` option to `true` in your auth configuration.
+
+```ts title="auth.ts"
+export const auth = betterAuth({
+  experimental: { joins: true }
+});
+```
+
+<Callout type="warn">
+  Please make sure that your Prisma schema has the necessary relations defined.
+  If you do not see any relations in your Prisma schema, you can manually add them using the `@relation` directive
+  or run our latest CLI version `npx @better-auth/cli@latest generate` to generate a new Prisma schema with the relations.
+</Callout>
+
+## Additional Information
+
+If you're looking for performance improvements or tips, take a look at our guide to <Link href="/docs/guides/optimizing-for-performance">performance optimizations</Link>.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Express Integration
+
+Integrate Better Auth with Express.
+
+***
+
+title: Express Integration
+description: Integrate Better Auth with Express.
+------------------------------------------------
+
+This guide will show you how to integrate Better Auth with [express.js](https://expressjs.com/).
+
+Before you start, make sure you have a Better Auth instance configured. If you haven't done that yet, check out the [installation](/docs/installation).
+
+<Callout>
+  Note that CommonJS (cjs) isn't supported. Use ECMAScript Modules (ESM) by setting `"type": "module"` in your `package.json` or configuring your `tsconfig.json` to use ES modules.
+</Callout>
+
+### Mount the handler
+
+To enable Better Auth to handle requests, we need to mount the handler to an API route. Create a catch-all route to manage all requests to `/api/auth/*` in case of ExpressJS v4 or `/api/auth/*splat` in case of ExpressJS v5 (or any other path specified in your Better Auth options).
+
+<Callout type="warn">
+  Don’t use `express.json()` before the Better Auth handler. Use it only for other routes, or the client API will get stuck on "pending".
+</Callout>
+
+```ts title="server.ts"
+import express from "express";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./auth";
+
+const app = express();
+const port = 3005;
+
+app.all("/api/auth/*", toNodeHandler(auth)); // For ExpressJS v4
+// app.all("/api/auth/*splat", toNodeHandler(auth)); For ExpressJS v5 
+
+// Mount express json middleware after Better Auth handler
+// or only apply it to routes that don't interact with Better Auth
+app.use(express.json());
+
+app.listen(port, () => {
+	console.log(`Example app listening on port ${port}`);
+});
+```
+
+After completing the setup, start your server. Better Auth will be ready to use. You can send a `GET` request to the `/ok` endpoint (`/api/auth/ok`) to verify that the server is running.
+
+### Cors Configuration
+
+To add CORS (Cross-Origin Resource Sharing) support to your Express server when integrating Better Auth, you can use the `cors` middleware. Below is an updated example showing how to configure CORS for your server:
+
+```ts
+import express from "express";
+import cors from "cors"; // Import the CORS middleware
+import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
+import { auth } from "./auth";
+
+const app = express();
+const port = 3005;
+
+// Configure CORS middleware
+app.use(
+  cors({
+    origin: "http://your-frontend-domain.com", // Replace with your frontend's origin
+    methods: ["GET", "POST", "PUT", "DELETE"], // Specify allowed HTTP methods
+    credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+  })
+);
+```
+
+### Getting the User Session
+
+To retrieve the user's session, you can use the `getSession` method provided by the `auth` object. This method requires the request headers to be passed in a specific format. To simplify this process, Better Auth provides a `fromNodeHeaders` helper function that converts Node.js request headers to the format expected by Better Auth (a `Headers` object).
+
+Here's an example of how to use `getSession` in an Express route:
+
+```ts title="server.ts"
+import { fromNodeHeaders } from "better-auth/node";
+import { auth } from "./auth"; // Your Better Auth instance
+
+app.get("/api/me", async (req, res) => {
+ 	const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+	return res.json(session);
+});
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# JWT
+
+Authenticate users with JWT tokens in services that can't use the session
+
+***
+
+title: JWT
+description: Authenticate users with JWT tokens in services that can't use the session
+--------------------------------------------------------------------------------------
+
+The JWT plugin provides endpoints to retrieve a JWT token and a JWKS endpoint to verify the token.
+
+<Callout type="info">
+  This plugin is not meant as a replacement for the session. It's meant to be used for services that require JWT tokens. If you're looking to use JWT tokens for authentication, check out the [Bearer Plugin](/docs/plugins/bearer).
+</Callout>
+
+## Installation
+
+<Steps>
+  <Step>
+    ### Add the plugin to your **auth** config
+
+    ```ts title="auth.ts"
+    import { betterAuth } from "better-auth"
+    import { jwt } from "better-auth/plugins"
+
+    export const auth = betterAuth({
+        plugins: [ // [!code highlight]
+            jwt(), // [!code highlight]
+        ] // [!code highlight]
+    })
+    ```
+  </Step>
+
+  <Step>
+    ### Migrate the database
+
+    Run the migration or generate the schema to add the necessary fields and tables to the database.
+
+    <Tabs items={["migrate", "generate"]}>
+      <Tab value="migrate">
+        ```bash
+        npx @better-auth/cli migrate
+        ```
+      </Tab>
+
+      <Tab value="generate">
+        ```bash
+        npx @better-auth/cli generate
+        ```
+      </Tab>
+    </Tabs>
+
+    See the [Schema](#schema) section to add the fields manually.
+  </Step>
+</Steps>
+
+## Usage
+
+Once you've installed the plugin, you can start using the JWT & JWKS plugin to get the token and the JWKS through their respective endpoints.
+
+## JWT
+
+### Retrieve the token
+
+There are multiple ways to retrieve JWT tokens:
+
+1. **Using the client plugin (recommended)**
+
+Add the `jwtClient` plugin to your auth client configuration:
+
+```ts title="auth-client.ts"
+import { createAuthClient } from "better-auth/client"
+import { jwtClient } from "better-auth/client/plugins" // [!code highlight]
+
+export const authClient = createAuthClient({
+  plugins: [
+    jwtClient() // [!code highlight]
+  ]
+})
+```
+
+Then use the client to get JWT tokens:
+
+```ts
+const { data, error } = await authClient.token()
+if (error) {
+  // handle error
+}
+if (data) {
+  const jwtToken = data.token
+  // Use this token for authenticated requests to external services
+}
+```
+
+This is the recommended approach for client applications that need JWT tokens for external API authentication.
+
+2. **Using your session token**
+
+To get the token, call the `/token` endpoint. This will return the following:
+
+```json
+  { 
+    "token": "ey..."
+  }
+```
+
+Make sure to include the token in the `Authorization` header of your requests if the `bearer` plugin is added in your auth configuration.
+
+```ts
+await fetch("/api/auth/token", {
+  headers: {
+    "Authorization": `Bearer ${token}`
+  },
+})
+```
+
+3. **From `set-auth-jwt` header**
+
+When you call `getSession` method, a JWT is returned in the `set-auth-jwt` header, which you can use to send to your services directly.
+
+```ts
+await authClient.getSession({
+  fetchOptions: {
+    onSuccess: (ctx)=>{
+      const jwt = ctx.response.headers.get("set-auth-jwt")
+    }
+  }
+})
+```
+
+### Verifying the token
+
+The token can be verified in your own service, without the need for an additional verify call or database check.
+For this JWKS is used. The public key can be fetched from the `/api/auth/jwks` endpoint.
+
+Since this key is not subject to frequent changes, it can be cached indefinitely.
+The key ID (`kid`) that was used to sign a JWT is included in the header of the token.
+In case a JWT with a different `kid` is received, it is recommended to fetch the JWKS again.
+
+```json
+  {
+    "keys": [
+        {
+            "crv": "Ed25519",
+            "x": "bDHiLTt7u-VIU7rfmcltcFhaHKLVvWFy-_csKZARUEU",
+            "kty": "OKP",
+            "kid": "c5c7995d-0037-4553-8aee-b5b620b89b23"
+        }
+    ]
+  }
+```
+
+### OAuth Provider Mode
+
+If you are making your system oAuth compliant (such as when utilizing the OIDC or MCP plugins), you **MUST** disable the `/token` endpoint (oAuth equivalent `/oauth2/token`) and disable setting the jwt header (oAuth equivalent `/oauth2/userinfo`).
+
+```ts title="auth.ts"
+betterAuth({
+  disabledPaths: [
+    "/token",
+  ],
+  plugins: [jwt({
+    disableSettingJwtHeader: true,
+  })]
+})
+```
+
+#### Example using jose with remote JWKS
+
+```ts
+import { jwtVerify, createRemoteJWKSet } from 'jose'
+
+async function validateToken(token: string) {
+  try {
+    const JWKS = createRemoteJWKSet(
+      new URL('http://localhost:3000/api/auth/jwks')
+    )
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: 'http://localhost:3000', // Should match your JWT issuer, which is the BASE_URL
+      audience: 'http://localhost:3000', // Should match your JWT audience, which is the BASE_URL by default
+    })
+    return payload
+  } catch (error) {
+    console.error('Token validation failed:', error)
+    throw error
+  }
+}
+
+// Usage example
+const token = 'your.jwt.token' // this is the token you get from the /api/auth/token endpoint
+const payload = await validateToken(token)
+```
+
+#### Example with local JWKS
+
+```ts
+import { jwtVerify, createLocalJWKSet } from 'jose'
+
+
+async function validateToken(token: string) {
+  try {
+    /**
+     * This is the JWKS that you get from the /api/auth/
+     * jwks endpoint
+     */
+    const storedJWKS = {
+      keys: [{
+        //...
+      }]
+    };
+    const JWKS = createLocalJWKSet({
+      keys: storedJWKS.data?.keys!,
+    })
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: 'http://localhost:3000', // Should match your JWT issuer, which is the BASE_URL
+      audience: 'http://localhost:3000', // Should match your JWT audience, which is the BASE_URL by default
+    })
+    return payload
+  } catch (error) {
+    console.error('Token validation failed:', error)
+    throw error
+  }
+}
+
+// Usage example
+const token = 'your.jwt.token' // this is the token you get from the /api/auth/token endpoint
+const payload = await validateToken(token)
+```
+
+### Remote JWKS Url
+
+Disables the `/jwks` endpoint and uses this endpoint in any discovery such as OIDC.
+
+Useful if your JWKS are not managed at `/jwks` or if your jwks are signed with a certificate and placed on your CDN.
+
+NOTE: you **MUST** specify which asymmetric algorithm is used for signing.
+
+```ts title="auth.ts"
+jwt({
+  jwks: {
+    remoteUrl: "https://example.com/.well-known/jwks.json",
+    keyPairConfig: {
+      alg: 'ES256',
+    },
+  }
+})
+```
+
+### Custom JWKS Path
+
+By default, the JWKS endpoint is available at `/jwks`. You can customize this path using the `jwksPath` option.
+
+This is useful when you need to:
+
+* Follow OAuth 2.0/OIDC conventions (e.g., `/.well-known/jwks.json`)
+* Match existing API conventions in your application
+* Avoid path conflicts with other endpoints
+
+**Server Configuration:**
+
+```ts title="auth.ts"
+jwt({
+  jwks: {
+    jwksPath: "/.well-known/jwks.json"
+  }
+})
+```
+
+**Client Configuration:**
+
+When using a custom `jwksPath` on the server, you **MUST** configure the client with the same path:
+
+```ts title="auth-client.ts"
+import { createAuthClient } from "better-auth/client"
+import { jwtClient } from "better-auth/client/plugins"
+
+export const authClient = createAuthClient({
+  plugins: [
+    jwtClient({
+      jwks: {
+        jwksPath: "/.well-known/jwks.json" // Must match server configuration
+      }
+    })
+  ]
+})
+```
+
+Then you can use the `jwks()` method as usual:
+
+```ts
+const { data, error } = await authClient.jwks()
+if (data) {
+  // Use data.keys to verify JWT tokens
+}
+```
+
+<Callout type="warning">
+  The `jwksPath` configured on the client **MUST** match the server configuration. If they don't match, the client will not be able to fetch the JWKS.
+</Callout>
+
+### Custom Signing
+
+This is an advanced feature. Configuration outside of this plugin **MUST** be provided.
+
+Implementers:
+
+* `remoteUrl` must be defined if using the `sign` function. This shall store all active keys, not just the current one.
+* If using localized approach, ensure server uses the latest private key when rotated. Depending on deployment, the server may need to be restarted.
+* When using remote approach, verify the payload is unchanged after transit. Use integrity validation like CRC32 or SHA256 checks if available.
+
+#### Localized Signing
+
+```ts title="auth.ts"
+jwt({
+  jwks: {
+    remoteUrl: "https://example.com/.well-known/jwks.json",
+    keyPairConfig: {
+      alg: 'EdDSA',
+    },
+  },
+  jwt: {
+    sign: async (jwtPayload: JWTPayload) => {
+      // this is pseudocode
+      return await new SignJWT(jwtPayload)
+        .setProtectedHeader({
+          alg: "EdDSA",
+          kid: process.env.currentKid,
+          typ: "JWT",
+        })
+        .sign(process.env.clientPrivateKey);
+    },
+  },
+})
+```
+
+#### Remote Signing
+
+Useful if you are using a remote Key Management Service such as [Google KMS](https://cloud.google.com/kms/docs/encrypt-decrypt-rsa#kms-encrypt-asymmetric-nodejs), [Amazon KMS](https://docs.aws.amazon.com/kms/latest/APIReference/API_Sign.html), or [Azure Key Vault](https://learn.microsoft.com/en-us/rest/api/keyvault/keys/sign/sign?view=rest-keyvault-keys-7.4\&tabs=HTTP).
+
+```ts title="auth.ts"
+jwt({
+  jwks: {
+    remoteUrl: "https://example.com/.well-known/jwks.json",
+    keyPairConfig: {
+      alg: 'ES256',
+    },
+  },
+  jwt: {
+    sign: async (jwtPayload: JWTPayload) => {
+      // this is pseudocode
+      const headers = JSON.stringify({ kid: '123', alg: 'ES256', typ: 'JWT' })
+      const payload = JSON.stringify(jwtPayload)
+      const encodedHeaders = Buffer.from(headers).toString('base64url')
+      const encodedPayload = Buffer.from(payload).toString('base64url')
+      const hash = createHash('sha256')
+      const data = `${encodedHeaders}.${encodedPayload}`
+      hash.update(Buffer.from(data))
+      const digest = hash.digest()
+      const sig = await remoteSign(digest)
+      // integrityCheck(sig)
+      const jwt = `${data}.${sig}`
+      // verifyJwt(jwt)
+      return jwt
+    },
+  },
+})
+```
+
+## Schema
+
+The JWT plugin adds the following tables to the database:
+
+### JWKS
+
+Table Name: `jwks`
+
+<DatabaseTable
+  fields={[
+  { 
+    name: "id", 
+    type: "string", 
+    description: "Unique identifier for each web key",
+    isPrimaryKey: true
+  },
+  { 
+    name: "publicKey", 
+    type: "string", 
+    description: "The public part of the web key" 
+  },
+  { 
+    name: "privateKey", 
+    type: "string", 
+    description: "The private part of the web key" 
+  },
+  { 
+    name: "createdAt", 
+    type: "Date", 
+    description: "Timestamp of when the web key was created" 
+  },
+  { 
+    name: "expiresAt", 
+    type: "Date", 
+    description: "Timestamp of when the web key expires",
+    isOptional: true
+  },
+]}
+/>
+
+<Callout>
+  You can customize the table name and fields for the `jwks` table. See the [Database concept documentation](/docs/concepts/database#custom-table-names) for more information on how to customize plugin schema.
+</Callout>
+
+## Options
+
+### Algorithm of the Key Pair
+
+The algorithm used for the generation of the key pair. The default is **EdDSA** with the **Ed25519** curve. Below are the available options:
+
+```ts title="auth.ts"
+jwt({
+  jwks: {
+    keyPairConfig: {
+      alg: "EdDSA",
+      crv: "Ed25519"
+    }
+  }
+})
+```
+
+#### EdDSA
+
+* **Default Curve**: `Ed25519`
+* **Optional Property**: `crv`
+  * Available options: `Ed25519`, `Ed448`
+  * Default: `Ed25519`
+
+#### ES256
+
+* No additional properties
+
+#### RSA256
+
+* **Optional Property**: `modulusLength`
+  * Expects a number
+  * Default: `2048`
+
+#### PS256
+
+* **Optional Property**: `modulusLength`
+  * Expects a number
+  * Default: `2048`
+
+#### ECDH-ES
+
+* **Optional Property**: `crv`
+  * Available options: `P-256`, `P-384`, `P-521`
+  * Default: `P-256`
+
+#### ES512
+
+* No additional properties
+
+### Disable private key encryption
+
+By default, the private key is encrypted using AES256 GCM. You can disable this by setting the `disablePrivateKeyEncryption` option to `true`.
+
+For security reasons, it's recommended to keep the private key encrypted.
+
+```ts title="auth.ts"
+jwt({
+  jwks: {
+    disablePrivateKeyEncryption: true
+  }
+})
+```
+
+### Key Rotation
+
+You can enable key rotation by setting the `rotationInterval` option. This will automatically rotate the key pair at the specified interval.
+
+The default value is `undefined` (disabled).
+
+```ts title="auth.ts"
+jwt({
+  jwks: {
+    rotationInterval: 60 * 60 * 24 * 30, // 30 days
+    gracePeriod: 60 * 60 * 24 * 30 // 30 days
+  }
+})
+```
+
+* `rotationInterval`: The interval in seconds to rotate the key pair.
+* `gracePeriod`: The period in seconds to keep the old key pair valid after rotation. This is useful to allow clients to verify tokens signed by the old key pair. The default value is 30 days.
+
+### Modify JWT payload
+
+By default the entire user object is added to the JWT payload. You can modify the payload by providing a function to the `definePayload` option.
+
+```ts title="auth.ts"
+jwt({
+  jwt: {
+    definePayload: ({user}) => {
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
+    }
+  }
+})
+```
+
+### Modify Issuer, Audience, Subject or Expiration time
+
+If none is given, the `BASE_URL` is used as the issuer and the audience is set to the `BASE_URL`. The expiration time is set to 15 minutes.
+
+```ts title="auth.ts"
+jwt({
+  jwt: {
+    issuer: "https://example.com",
+    audience: "https://example.com",
+    expirationTime: "1h",
+    getSubject: (session) => {
+      // by default the subject is the user id
+      return session.user.email
+    }
+  }
+})
+```
+
+### Custom Adapter
+
+By default, the JWT plugin stores and retrieves JWKS from your database. You can provide a custom adapter to override this behavior, allowing you to store JWKS in alternative locations such as Redis, external services, or in-memory storage.
+
+```ts title="auth.ts"
+jwt({
+  adapter: {
+    getJwks: async (ctx) => {
+      // Custom implementation to get all JWKS
+      // This overrides the default database query
+      return await yourCustomStorage.getAllKeys()
+    },
+    getLatestKey: async (ctx) => {
+      // Custom implementation to get the latest key
+      // This overrides the default database query
+      return await yourCustomStorage.getLatestKey()
+    },
+    createJwk: async (ctx, webKey) => {
+      // Custom implementation to create a new key
+      // This overrides the default database insert
+      return await yourCustomStorage.createKey(webKey)
+    }
+  }
+})
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Stripe
+
+Stripe plugin for Better Auth to manage subscriptions and payments.
+
+***
+
+title: Stripe
+description: Stripe plugin for Better Auth to manage subscriptions and payments.
+--------------------------------------------------------------------------------
+
+The Stripe plugin integrates Stripe's payment and subscription functionality with Better Auth. Since payment and authentication are often tightly coupled, this plugin simplifies the integration of Stripe into your application, handling customer creation, subscription management, and webhook processing.
+
+## Features
+
+* Create Stripe Customers automatically when users sign up
+* Manage subscription plans and pricing
+* Process subscription lifecycle events (creation, updates, cancellations)
+* Handle Stripe webhooks securely with signature verification
+* Expose subscription data to your application
+* Support for trial periods and subscription upgrades
+* **Automatic trial abuse prevention** - Users can only get one trial per account across all plans
+* Flexible reference system to associate subscriptions with users or organizations
+* Team subscription support with seats management
+
+## Installation
+
+<Steps>
+  <Step>
+    ### Install the plugin
+
+    First, install the plugin:
+
+    <CodeBlockTabs defaultValue="npm">
+      <CodeBlockTabsList>
+        <CodeBlockTabsTrigger value="npm">
+          npm
+        </CodeBlockTabsTrigger>
+
+        <CodeBlockTabsTrigger value="pnpm">
+          pnpm
+        </CodeBlockTabsTrigger>
+
+        <CodeBlockTabsTrigger value="yarn">
+          yarn
+        </CodeBlockTabsTrigger>
+
+        <CodeBlockTabsTrigger value="bun">
+          bun
+        </CodeBlockTabsTrigger>
+      </CodeBlockTabsList>
+
+      <CodeBlockTab value="npm">
+        ```bash
+        npm install @better-auth/stripe
+        ```
+      </CodeBlockTab>
+
+      <CodeBlockTab value="pnpm">
+        ```bash
+        pnpm add @better-auth/stripe
+        ```
+      </CodeBlockTab>
+
+      <CodeBlockTab value="yarn">
+        ```bash
+        yarn add @better-auth/stripe
+        ```
+      </CodeBlockTab>
+
+      <CodeBlockTab value="bun">
+        ```bash
+        bun add @better-auth/stripe
+        ```
+      </CodeBlockTab>
+    </CodeBlockTabs>
+
+    <Callout>
+      If you're using a separate client and server setup, make sure to install the plugin in both parts of your project.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Install the Stripe SDK
+
+    Next, install the Stripe SDK on your server:
+
+    <CodeBlockTabs defaultValue="npm">
+      <CodeBlockTabsList>
+        <CodeBlockTabsTrigger value="npm">
+          npm
+        </CodeBlockTabsTrigger>
+
+        <CodeBlockTabsTrigger value="pnpm">
+          pnpm
+        </CodeBlockTabsTrigger>
+
+        <CodeBlockTabsTrigger value="yarn">
+          yarn
+        </CodeBlockTabsTrigger>
+
+        <CodeBlockTabsTrigger value="bun">
+          bun
+        </CodeBlockTabsTrigger>
+      </CodeBlockTabsList>
+
+      <CodeBlockTab value="npm">
+        ```bash
+        npm install stripe@^20.0.0
+        ```
+      </CodeBlockTab>
+
+      <CodeBlockTab value="pnpm">
+        ```bash
+        pnpm add stripe@^20.0.0
+        ```
+      </CodeBlockTab>
+
+      <CodeBlockTab value="yarn">
+        ```bash
+        yarn add stripe@^20.0.0
+        ```
+      </CodeBlockTab>
+
+      <CodeBlockTab value="bun">
+        ```bash
+        bun add stripe@^20.0.0
+        ```
+      </CodeBlockTab>
+    </CodeBlockTabs>
+  </Step>
+
+  <Step>
+    ### Add the plugin to your auth config
+
+    ```ts title="auth.ts"
+    import { betterAuth } from "better-auth"
+    import { stripe } from "@better-auth/stripe"
+    import Stripe from "stripe"
+
+    const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2025-11-17.clover", // Latest API version as of Stripe SDK v20.0.0
+    })
+
+    export const auth = betterAuth({
+        // ... your existing config
+        plugins: [
+            stripe({
+                stripeClient,
+                stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+                createCustomerOnSignUp: true,
+            })
+        ]
+    })
+    ```
+
+    <Callout type="info">
+      **Upgrading from Stripe v18?** Version 19 uses async webhook signature verification (`constructEventAsync`) which is handled internally by the plugin. No code changes required on your end!
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Add the client plugin
+
+    ```ts title="auth-client.ts"
+    import { createAuthClient } from "better-auth/client"
+    import { stripeClient } from "@better-auth/stripe/client"
+
+    export const client = createAuthClient({
+        // ... your existing config
+        plugins: [
+            stripeClient({
+                subscription: true //if you want to enable subscription management
+            })
+        ]
+    })
+    ```
+  </Step>
+
+  <Step>
+    ### Migrate the database
+
+    Run the migration or generate the schema to add the necessary tables to the database.
+
+    <Tabs items={["migrate", "generate"]}>
+      <Tab value="migrate">
+        ```bash
+        npx @better-auth/cli migrate
+        ```
+      </Tab>
+
+      <Tab value="generate">
+        ```bash
+        npx @better-auth/cli generate
+        ```
+      </Tab>
+    </Tabs>
+
+    See the [Schema](#schema) section to add the tables manually.
+  </Step>
+
+  <Step>
+    ### Set up Stripe webhooks
+
+    Create a webhook endpoint in your Stripe dashboard pointing to:
+
+    ```
+    https://your-domain.com/api/auth/stripe/webhook
+    ```
+
+    `/api/auth` is the default path for the auth server.
+
+    Make sure to select at least these events:
+
+    * `checkout.session.completed`
+    * `customer.subscription.updated`
+    * `customer.subscription.deleted`
+
+    Save the webhook signing secret provided by Stripe and add it to your environment variables as `STRIPE_WEBHOOK_SECRET`.
+  </Step>
+</Steps>
+
+## Usage
+
+### Customer Management
+
+You can use this plugin solely for customer management without enabling subscriptions. This is useful if you just want to link Stripe customers to your users.
+
+By default, when a user signs up, a Stripe customer is automatically created if you set `createCustomerOnSignUp: true`. This customer is linked to the user in your database.
+You can customize the customer creation process:
+
+```ts title="auth.ts"
+stripe({
+    // ... other options
+    createCustomerOnSignUp: true,
+    onCustomerCreate: async ({ stripeCustomer, user }, ctx) => {
+        // Do something with the newly created customer
+        console.log(`Customer ${stripeCustomer.id} created for user ${user.id}`);
+    },
+    getCustomerCreateParams: async (user, ctx) => {
+        // Customize the Stripe customer creation parameters
+        return {
+            metadata: {
+                referralSource: user.metadata?.referralSource
+            }
+        };
+    }
+})
+```
+
+### Subscription Management
+
+#### Defining Plans
+
+You can define your subscription plans either statically or dynamically:
+
+```ts title="auth.ts"
+// Static plans
+subscription: {
+    enabled: true,
+    plans: [
+        {
+            name: "basic", // the name of the plan, it'll be automatically lower cased when stored in the database
+            priceId: "price_1234567890", // the price ID from stripe
+            annualDiscountPriceId: "price_1234567890", // (optional) the price ID for annual billing with a discount
+            limits: {
+                projects: 5,
+                storage: 10
+            }
+        },
+        {
+            name: "pro",
+            priceId: "price_0987654321",
+            limits: {
+                projects: 20,
+                storage: 50
+            },
+            freeTrial: {
+                days: 14,
+            }
+        }
+    ]
+}
+
+// Dynamic plans (fetched from database or API)
+subscription: {
+    enabled: true,
+    plans: async () => {
+        const plans = await db.query("SELECT * FROM plans");
+        return plans.map(plan => ({
+            name: plan.name,
+            priceId: plan.stripe_price_id,
+            limits: JSON.parse(plan.limits)
+        }));
+    }
+}
+```
+
+see [plan configuration](#plan-configuration) for more.
+
+#### Creating a Subscription
+
+To create a subscription, use the `subscription.upgrade` method:
+
+### Client Side
+
+```ts
+const { data, error } = await authClient.subscription.upgrade({
+    plan: pro,
+    annual, // optional
+    referenceId: 123, // optional
+    subscriptionId: sub_123, // optional
+    metadata, // optional
+    seats, // optional
+    successUrl,
+    cancelUrl,
+    returnUrl, // optional
+    disableRedirect,
+});
+```
+
+### Server Side
+
+```ts
+const data = await auth.api.upgradeSubscription({
+    body: {
+        plan: pro,
+        annual, // optional
+        referenceId: 123, // optional
+        subscriptionId: sub_123, // optional
+        metadata, // optional
+        seats, // optional
+        successUrl,
+        cancelUrl,
+        returnUrl, // optional
+        disableRedirect,
+    },
+    // This endpoint requires session cookies.
+    headers: await headers()
+});
+```
+
+### Type Definition
+
+```ts
+type upgradeSubscription = {
+    /**
+     * The name of the plan to upgrade to. 
+     */
+    plan: string = "pro"
+    /**
+     * Whether to upgrade to an annual plan. 
+     */
+    annual?: boolean = true
+    /**
+     * Reference id of the subscription to upgrade. 
+     */
+    referenceId?: string = "123"
+    /**
+     * The id of the subscription to upgrade. 
+     */
+    subscriptionId?: string = "sub_123"
+    metadata?: Record<string, any>
+    /**
+     * Number of seats to upgrade to (if applicable). 
+     */
+    seats?: number = 1
+    /**
+     * Callback URL to redirect back after successful subscription. 
+     */
+    successUrl: string
+    /**
+     * If set, checkout shows a back button and customers will be directed here if they cancel payment.
+     */
+    cancelUrl: string 
+    /**
+     * URL to take customers to when they click on the billing portal’s link to return to your website.
+     */
+    returnUrl?: string
+    /**
+     * Disable redirect after successful subscription. 
+     */
+    disableRedirect: boolean = true
+
+}
+```
+
+**Simple Example:**
+
+```ts title="client.ts"
+await client.subscription.upgrade({
+    plan: "pro",
+    successUrl: "/dashboard",
+    cancelUrl: "/pricing",
+    annual: true, // Optional: upgrade to an annual plan
+    referenceId: "org_123", // Optional: defaults to the current logged in user ID
+    seats: 5 // Optional: for team plans
+});
+```
+
+This will create a Checkout Session and redirect the user to the Stripe Checkout page.
+
+<Callout type="warn">
+  If the user already has an active subscription, you *must* provide the `subscriptionId` parameter. Otherwise, the user will be subscribed to (and pay for) both plans.
+</Callout>
+
+> **Important:** The `successUrl` parameter will be internally modified to handle race conditions between checkout completion and webhook processing. The plugin creates an intermediate redirect that ensures subscription status is properly updated before redirecting to your success page.
+
+```ts
+const { error } = await client.subscription.upgrade({
+    plan: "pro",
+    successUrl: "/dashboard",
+    cancelUrl: "/pricing",
+});
+if(error) {
+    alert(error.message);
+}
+```
+
+<Callout type="warn">
+  For each reference ID (user or organization), only one active or trialing subscription is supported at a time. The plugin doesn't currently support multiple concurrent active subscriptions for the same reference ID.
+</Callout>
+
+#### Switching Plans
+
+To switch a subscription to a different plan, use the `subscription.upgrade` method:
+
+```ts title="client.ts"
+await client.subscription.upgrade({
+    plan: "pro",
+    successUrl: "/dashboard",
+    cancelUrl: "/pricing",
+    subscriptionId: "sub_123", // the Stripe subscription ID of the user's current plan
+});
+```
+
+This ensures that the user only pays for the new plan, and not both.
+
+#### Listing Active Subscriptions
+
+To get the user's active subscriptions:
+
+### Client Side
+
+```ts
+const { data, error } = await authClient.subscription.list({
+    referenceId: 123, // optional
+});
+```
+
+### Server Side
+
+```ts
+const subscriptions = await auth.api.listActiveSubscriptions({
+    query: {
+        referenceId: 123, // optional
+    },
+    // This endpoint requires session cookies.
+    headers: await headers()
+});
+```
+
+### Type Definition
+
+```ts
+type listActiveSubscriptions = {
+    /**
+     * Reference id of the subscription to list. 
+     */
+    referenceId?: string = '123'
+
+}
+```
+
+Make sure to provide `authorizeReference` in your plugin config to authorize the reference ID
+
+```ts title="auth.ts"
+stripe({
+    // ... other options
+    subscription: {
+        // ... other subscription options
+        authorizeReference: async ({ user, session, referenceId, action }) => {
+            if(action === "list-subscription") {
+                const org = await db.member.findFirst({
+                    where: {
+                        organizationId: referenceId,
+                        userId: user.id
+                    }   
+                });
+                return org?.role === "owner"
+            }
+            // Check if the user has permission to list subscriptions for this reference
+            return true;
+        }
+    }
+})
+```
+
+#### Canceling a Subscription
+
+To cancel a subscription:
+
+### Client Side
+
+```ts
+const { data, error } = await authClient.subscription.cancel({
+    referenceId: org_123, // optional
+    subscriptionId: sub_123, // optional
+    returnUrl: /account,
+});
+```
+
+### Server Side
+
+```ts
+const data = await auth.api.cancelSubscription({
+    body: {
+        referenceId: org_123, // optional
+        subscriptionId: sub_123, // optional
+        returnUrl: /account,
+    },
+    // This endpoint requires session cookies.
+    headers: await headers()
+});
+```
+
+### Type Definition
+
+```ts
+type cancelSubscription = {
+    /**
+     * Reference id of the subscription to cancel. Defaults to the userId.
+     */
+    referenceId?: string = 'org_123'
+    /**
+     * The id of the subscription to cancel. 
+     */
+    subscriptionId?: string = 'sub_123'
+    /**
+     * URL to take customers to when they click on the billing portal’s link to return to your website.
+     */
+    returnUrl: string = '/account'
+
+}
+```
+
+This will redirect the user to the Stripe Billing Portal where they can cancel their subscription.
+
+#### Restoring a Canceled Subscription
+
+If a user changes their mind after canceling a subscription (but before the subscription period ends), you can restore the subscription:
+
+### Client Side
+
+```ts
+const { data, error } = await authClient.subscription.restore({
+    referenceId: 123, // optional
+    subscriptionId: sub_123, // optional
+});
+```
+
+### Server Side
+
+```ts
+const data = await auth.api.restoreSubscription({
+    body: {
+        referenceId: 123, // optional
+        subscriptionId: sub_123, // optional
+    },
+    // This endpoint requires session cookies.
+    headers: await headers()
+});
+```
+
+### Type Definition
+
+```ts
+type restoreSubscription = {
+    /**
+     * Reference id of the subscription to restore. Defaults to the userId.
+     */
+    referenceId?: string = '123'
+    /**
+     * The id of the subscription to restore. 
+     */
+    subscriptionId?: string = 'sub_123'
+
+}
+```
+
+This will reactivate a subscription that was previously set to cancel at the end of the billing period (`cancelAtPeriodEnd: true`). The subscription will continue to renew automatically.
+
+> **Note:** This only works for subscriptions that are still active but marked to cancel at the end of the period. It cannot restore subscriptions that have already ended.
+
+#### Creating Billing Portal Sessions
+
+To create a [Stripe billing portal session](https://docs.stripe.com/api/customer_portal/sessions/create) where customers can manage their subscriptions, update payment methods, and view billing history:
+
+### Client Side
+
+```ts
+const { data, error } = await authClient.subscription.billingPortal({
+    locale, // optional
+    referenceId: 123, // optional
+    returnUrl, // optional
+});
+```
+
+### Server Side
+
+```ts
+const data = await auth.api.createBillingPortal({
+    body: {
+        locale, // optional
+        referenceId: 123, // optional
+        returnUrl, // optional
+    },
+    // This endpoint requires session cookies.
+    headers: await headers()
+});
+```
+
+### Type Definition
+
+```ts
+type createBillingPortal = {
+    /**
+    * The IETF language tag of the locale customer portal is displayed in. If blank or auto, browser's locale is used.
+    */
+    locale?: string
+    /**
+     * Reference id of the subscription to upgrade. 
+     */
+    referenceId?: string = "123"
+    /**
+     * Return URL to redirect back after successful subscription. 
+     */
+    returnUrl?: string
+
+}
+```
+
+<Callout type="info">
+  For supported locales, see the [IETF language tag documentation](https://docs.stripe.com/js/appendix/supported_locales).
+</Callout>
+
+This endpoint creates a Stripe billing portal session and returns a URL in the response as `data.url`. You can redirect users to this URL to allow them to manage their subscription, payment methods, and billing history.
+
+### Reference System
+
+By default, subscriptions are associated with the user ID. However, you can use a custom reference ID to associate subscriptions with other entities, such as organizations:
+
+```ts title="client.ts"
+// Create a subscription for an organization
+await client.subscription.upgrade({
+    plan: "pro",
+    referenceId: "org_123456",
+    successUrl: "/dashboard",
+    cancelUrl: "/pricing",
+    seats: 5 // Number of seats for team plans
+});
+
+// List subscriptions for an organization
+const { data: subscriptions } = await client.subscription.list({
+    query: {
+        referenceId: "org_123456"
+    }
+});
+```
+
+#### Team Subscriptions with Seats
+
+For team or organization plans, you can specify the number of seats:
+
+```ts
+await client.subscription.upgrade({
+    plan: "team",
+    referenceId: "org_123456",
+    seats: 10, // 10 team members
+    successUrl: "/org/billing/success",
+    cancelUrl: "/org/billing"
+});
+```
+
+The `seats` parameter is passed to Stripe as the quantity for the subscription item. You can use this value in your application logic to limit the number of members in a team or organization.
+
+To authorize reference IDs, implement the `authorizeReference` function:
+
+```ts title="auth.ts"
+subscription: {
+    // ... other options
+    authorizeReference: async ({ user, session, referenceId, action }) => {
+        // Check if the user has permission to manage subscriptions for this reference
+        if (action === "upgrade-subscription" || action === "cancel-subscription" || action === "restore-subscription") {
+            const org = await db.member.findFirst({
+                where: {
+                    organizationId: referenceId,
+                    userId: user.id
+                }   
+            });
+            return org?.role === "owner"
+        }
+        return true;
+    }
+}
+```
+
+### Webhook Handling
+
+The plugin automatically handles common webhook events:
+
+* `checkout.session.completed`: Updates subscription status after checkout
+* `customer.subscription.updated`: Updates subscription details when changed
+* `customer.subscription.deleted`: Marks subscription as canceled
+
+You can also handle custom events:
+
+```ts title="auth.ts"
+stripe({
+    // ... other options
+    onEvent: async (event) => {
+        // Handle any Stripe event
+        switch (event.type) {
+            case "invoice.paid":
+                // Handle paid invoice
+                break;
+            case "payment_intent.succeeded":
+                // Handle successful payment
+                break;
+        }
+    }
+})
+```
+
+### Subscription Lifecycle Hooks
+
+You can hook into various subscription lifecycle events:
+
+```ts title="auth.ts"
+subscription: {
+    // ... other options
+    onSubscriptionComplete: async ({ event, subscription, stripeSubscription, plan }) => {
+        // Called when a subscription is successfully created
+        await sendWelcomeEmail(subscription.referenceId, plan.name);
+    },
+    onSubscriptionUpdate: async ({ event, subscription }) => {
+        // Called when a subscription is updated
+        console.log(`Subscription ${subscription.id} updated`);
+    },
+    onSubscriptionCancel: async ({ event, subscription, stripeSubscription, cancellationDetails }) => {
+        // Called when a subscription is canceled
+        await sendCancellationEmail(subscription.referenceId);
+    },
+    onSubscriptionDeleted: async ({ event, subscription, stripeSubscription }) => {
+        // Called when a subscription is deleted
+        console.log(`Subscription ${subscription.id} deleted`);
+    }
+}
+```
+
+### Trial Periods
+
+You can configure trial periods for your plans:
+
+```ts title="auth.ts"
+{
+    name: "pro",
+    priceId: "price_0987654321",
+    freeTrial: {
+        days: 14,
+        onTrialStart: async (subscription) => {
+            // Called when a trial starts
+            await sendTrialStartEmail(subscription.referenceId);
+        },
+        onTrialEnd: async ({ subscription }, ctx) => {
+            // Called when a trial ends
+            await sendTrialEndEmail(subscription.referenceId);
+        },
+        onTrialExpired: async (subscription, ctx) => {
+            // Called when a trial expires without conversion
+            await sendTrialExpiredEmail(subscription.referenceId);
+        }
+    }
+}
+```
+
+## Schema
+
+The Stripe plugin adds the following tables to your database:
+
+### User
+
+Table Name: `user`
+
+<DatabaseTable
+  fields={[
+  { 
+    name: "stripeCustomerId", 
+    type: "string", 
+    description: "The Stripe customer ID",
+    isOptional: true
+  },
+]}
+/>
+
+### Subscription
+
+Table Name: `subscription`
+
+<DatabaseTable
+  fields={[
+  { 
+    name: "id", 
+    type: "string", 
+    description: "Unique identifier for each subscription",
+    isPrimaryKey: true
+  },
+  { 
+    name: "plan", 
+    type: "string", 
+    description: "The name of the subscription plan" 
+  },
+  { 
+    name: "referenceId", 
+    type: "string", 
+    description: "The ID this subscription is associated with (user ID by default). This should NOT be a unique field in your database, as it must allow users to resubscribe after a cancellation.",
+    isUnique: false
+  },
+  { 
+    name: "stripeCustomerId", 
+    type: "string", 
+    description: "The Stripe customer ID",
+    isOptional: true
+  },
+  { 
+    name: "stripeSubscriptionId", 
+    type: "string", 
+    description: "The Stripe subscription ID",
+    isOptional: true
+  },
+  { 
+    name: "status", 
+    type: "string", 
+    description: "The status of the subscription (active, canceled, etc.)",
+    defaultValue: "incomplete"
+  },
+  { 
+    name: "periodStart", 
+    type: "Date", 
+    description: "Start date of the current billing period",
+    isOptional: true
+  },
+  { 
+    name: "periodEnd", 
+    type: "Date", 
+    description: "End date of the current billing period",
+    isOptional: true
+  },
+  { 
+    name: "cancelAtPeriodEnd", 
+    type: "boolean", 
+    description: "Whether the subscription will be canceled at the end of the period",
+    defaultValue: false,
+    isOptional: true
+  },
+  { 
+    name: "seats", 
+    type: "number", 
+    description: "Number of seats for team plans",
+    isOptional: true
+  },
+  { 
+    name: "trialStart", 
+    type: "Date", 
+    description: "Start date of the trial period",
+    isOptional: true
+  },
+  { 
+    name: "trialEnd", 
+    type: "Date", 
+    description: "End date of the trial period",
+    isOptional: true
+  }
+]}
+/>
+
+### Customizing the Schema
+
+To change the schema table names or fields, you can pass a `schema` option to the Stripe plugin:
+
+```ts title="auth.ts"
+stripe({
+    // ... other options
+    schema: {
+        subscription: {
+            modelName: "stripeSubscriptions", // map the subscription table to stripeSubscriptions
+            fields: {
+                plan: "planName" // map the plan field to planName
+            }
+        }
+    }
+})
+```
+
+## Options
+
+### Main Options
+
+**stripeClient**: `Stripe` - The Stripe client instance. Required.
+
+**stripeWebhookSecret**: `string` - The webhook signing secret from Stripe. Required.
+
+**createCustomerOnSignUp**: `boolean` - Whether to automatically create a Stripe customer when a user signs up. Default: `false`.
+
+**onCustomerCreate**: `(data: { stripeCustomer: Stripe.Customer, user: User }, ctx: GenericEndpointContext) => Promise<void>` - A function called after a customer is created.
+
+**getCustomerCreateParams**: `(user: User, ctx: GenericEndpointContext) => Promise<{}>` - A function to customize the Stripe customer creation parameters.
+
+**onEvent**: `(event: Stripe.Event) => Promise<void>` - A function called for any Stripe webhook event.
+
+### Subscription Options
+
+**enabled**: `boolean` - Whether to enable subscription functionality. Required.
+
+**plans**: `Plan[] | (() => Promise<Plan[]>)` - An array of subscription plans or a function that returns plans. Required if subscriptions are enabled.
+
+**requireEmailVerification**: `boolean` - Whether to require email verification before allowing subscription upgrades. Default: `false`.
+
+**authorizeReference**: `(data: { user: User, session: Session, referenceId: string, action: "upgrade-subscription" | "list-subscription" | "cancel-subscription" | "restore-subscription"}, ctx: GenericEndpointContext) => Promise<boolean>` - A function to authorize reference IDs.
+
+### Plan Configuration
+
+Each plan can have the following properties:
+
+**name**: `string` - The name of the plan. Required.
+
+**priceId**: `string` - The Stripe price ID. Required unless using `lookupKey`.
+
+**lookupKey**: `string` - The Stripe price lookup key. Alternative to `priceId`.
+
+**annualDiscountPriceId**: `string` - A price ID for annual billing.
+
+**annualDiscountLookupKey**: `string` - The Stripe price lookup key for annual billing. Alternative to `annualDiscountPriceId`.
+
+**limits**: `Record<string, unknown>` - Limits associated with the plan (e.g., `{ projects: 10, storage: 5 }`). Useful when you want to define plan-specific metadata.
+
+**group**: `string` - A group name for the plan, useful for categorizing plans.
+
+**freeTrial**: Object containing trial configuration:
+
+* **days**: `number` - Number of trial days.
+* **onTrialStart**: `(subscription: Subscription) => Promise<void>` - Called when a trial starts.
+* **onTrialEnd**: `(data: { subscription: Subscription }, ctx: GenericEndpointContext) => Promise<void>` - Called when a trial ends.
+* **onTrialExpired**: `(subscription: Subscription, ctx: GenericEndpointContext) => Promise<void>` - Called when a trial expires without conversion.
+
+## Advanced Usage
+
+### Using with Organizations
+
+The Stripe plugin works well with the organization plugin. You can associate subscriptions with organizations instead of individual users:
+
+```ts title="client.ts"
+// Get the active organization
+const { data: activeOrg } = client.useActiveOrganization();
+
+// Create a subscription for the organization
+await client.subscription.upgrade({
+    plan: "team",
+    referenceId: activeOrg.id,
+    seats: 10,
+    annual: true, // upgrade to an annual plan (optional)
+    successUrl: "/org/billing/success",
+    cancelUrl: "/org/billing"
+});
+```
+
+Make sure to implement the `authorizeReference` function to verify that the user has permission to manage subscriptions for the organization:
+
+```ts title="auth.ts"
+subscription: {
+    // ... other subscription options
+    authorizeReference: async ({ user, referenceId, action }) => {
+        const member = await db.members.findFirst({
+            where: {
+                userId: user.id,
+                organizationId: referenceId
+            }
+        });
+        
+        return member?.role === "owner" || member?.role === "admin";
+    }
+}
+```
+
+### Custom Checkout Session Parameters
+
+You can customize the Stripe Checkout session with additional parameters:
+
+```ts title="auth.ts"
+getCheckoutSessionParams: async ({ user, session, plan, subscription }, ctx) => {
+    return {
+        params: {
+            allow_promotion_codes: true,
+            tax_id_collection: {
+                enabled: true
+            },
+            billing_address_collection: "required",
+            custom_text: {
+                submit: {
+                    message: "We'll start your subscription right away"
+                }
+            },
+            metadata: {
+                planType: "business",
+                referralCode: user.metadata?.referralCode
+            }
+        },
+        options: {
+            idempotencyKey: `sub_${user.id}_${plan.name}_${Date.now()}`
+        }
+    };
+}
+```
+
+### Tax Collection
+
+To collect tax IDs from the customer, set `tax_id_collection` to true:
+
+```ts title="auth.ts"
+subscription: {
+    // ... other options
+    getCheckoutSessionParams: async ({ user, session, plan, subscription }, ctx) => {
+        return {
+            params: {
+                tax_id_collection: {
+                    enabled: true
+                }
+            }
+        };
+    }
+}
+```
+
+### Automatic Tax Calculation
+
+To enable automatic tax calculation using the customer's location, set `automatic_tax` to true. Enabling this parameter causes Checkout to collect any billing address information necessary for tax calculation. You need to have tax registration setup and configured in the Stripe dashboard first for this to work.
+
+```ts title="auth.ts"
+subscription: {
+    // ... other options
+    getCheckoutSessionParams: async ({ user, session, plan, subscription }, ctx) => {
+        return {
+            params: {
+                automatic_tax: {
+                    enabled: true
+                }
+            }
+        };
+    }
+}
+```
+
+### Trial Period Management
+
+The Stripe plugin automatically prevents users from getting multiple free trials. Once a user has used a trial period (regardless of which plan), they will not be eligible for additional trials on any plan.
+
+**How it works:**
+
+* The system tracks trial usage across all plans for each user
+* When a user subscribes to a plan with a trial, the system checks their subscription history
+* If the user has ever had a trial (indicated by `trialStart`/`trialEnd` fields or `trialing` status), no new trial will be offered
+* This prevents abuse where users cancel subscriptions and resubscribe to get multiple free trials
+
+**Example scenario:**
+
+1. User subscribes to "Starter" plan with 7-day trial
+2. User cancels the subscription after the trial
+3. User tries to subscribe to "Premium" plan - no trial will be offered
+4. User will be charged immediately for the Premium plan
+
+This behavior is automatic and requires no additional configuration. The trial eligibility is determined at the time of subscription creation and cannot be overridden through configuration.
+
+## Troubleshooting
+
+### Webhook Issues
+
+If webhooks aren't being processed correctly:
+
+1. Check that your webhook URL is correctly configured in the Stripe dashboard
+2. Verify that the webhook signing secret is correct
+3. Ensure you've selected all the necessary events in the Stripe dashboard
+4. Check your server logs for any errors during webhook processing
+
+### Subscription Status Issues
+
+If subscription statuses aren't updating correctly:
+
+1. Make sure the webhook events are being received and processed
+2. Check that the `stripeCustomerId` and `stripeSubscriptionId` fields are correctly populated
+3. Verify that the reference IDs match between your application and Stripe
+
+### Testing Webhooks Locally
+
+For local development, you can use the Stripe CLI to forward webhooks to your local environment:
+
+```bash
+stripe listen --forward-to localhost:3000/api/auth/stripe/webhook
+```
+
+This will provide you with a webhook signing secret that you can use in your local environment.
+

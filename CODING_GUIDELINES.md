@@ -1,58 +1,143 @@
-# Coding Guidelines for ecommerce-full-stack (Backend)
+# Coding Guidelines — Backend
 
 Purpose
 
-- Provide a concise, enforceable set of rules for backend development.
-- Reflect the user's preferences: structured code, separation of concerns, maintainability, and minimal files when sensible.
+- Capture the project's standards so code is: structured, maintainable, testable, and minimal in files where sensible.
+- Ensure the assistant critiques and validates design choices against professional engineering practices.
 
 Core Principles
 
-- Structure: Organize code into clear layers: `routes` -> `controllers` -> `services` -> `repositories` -> `models`.
-- Single Responsibility: Each module/file should have one responsibility.
-- Separation of Concerns: Keep HTTP, business, and persistence logic separate.
-- Reusability: Prefer small, testable functions and services for reuse.
-- Minimize Files Sensibly: Avoid splitting into files without purpose; prefer grouping related small functions together.
-- Explicit Contracts: Use DTOs and schema validation (e.g., Zod) for request/response boundaries.
-- Error Handling: Use a central `AppError` (operational errors) and a global error handler for consistent responses.
-- Logging: Structured logs (e.g., `pino`) and do not log secrets.
-- Security: Validate and sanitize inputs; use HTTPS, secure cookies, and environment-based secrets management.
+- **Structure:** Follow a layered approach: `routes` → `controllers` → `services` → `repositories` → `models`.
+- **Single Responsibility:** One responsibility per module/file.
+- **Separation of Concerns:** Keep HTTP, business logic, and persistence separate.
+- **Reusability:** Prefer small, pure, testable functions. Share common logic via well-scoped utilities.
+- **Minimal Files (sensible):** Avoid creating files without clear responsibility. Group small related helpers into a single file when appropriate.
+- **Explicit Contracts:** Use DTOs and runtime validation (e.g. `zod`) for request/response boundaries.
+- **Robust Error Handling:** Use typed operational errors (e.g. `AppError`) and a single global error middleware that maps to HTTP responses.
+- **Observability:** Structured logs (e.g. `pino`), correlation IDs, and avoid logging secrets.
+- **Security-by-Design:** Validate, sanitize, use least privilege, store secrets in env, and follow OWASP guidance.
 
-TypeScript and Tooling
+Project Layout (recommended)
 
-- Strict typing (`strict: true`) is required. Prefer well-typed APIs over `any`.
-- Keep `tsconfig.json` conservative: `rootDir` -> `src`, `outDir` -> `dist`.
-- Linting/Formatting: Use ESLint + Prettier with consistent rules. Fix linter errors before merging.
+Keep the layout simple and predictable. Example for this repository:
+
+- `src/routes/` : Route definitions and basic request -> controller wiring.
+- `src/controllers/` : Parse request, call `services`, transform responses.
+- `src/services/` : Business logic, orchestration, validations beyond DTOs.
+- `src/repositories/` : Database access, plain queries, and transactions.
+- `src/models/` : Domain types and prisma client wrappers (if using Prisma).
+- `src/dtos/` : Request/response schemas and `zod` validators.
+- `src/middlewares/` : Express/Koa middlewares (auth, error handling, request validation).
+- `src/utils/` : Small, focused helpers used across layers.
+
+Code Rules (concrete)
+
+- **Controllers:** Thin wrappers. Do not contain business logic. Example:
+  - Controller: parse/validate request (use DTO), call service, handle response status.
+
+- **Services:** Implement business rules. Use dependency injection where helpful for testability.
+- **Repositories:** Only data persistence. Return domain objects/DTOs, not HTTP responses.
+- **Files:** Aim for 1–200 lines per file. If a file grows beyond that, consider extracting cohesive pieces.
+- **Exports:** Prefer a single default export for modules that represent a concept; otherwise named exports for utilities.
+- **Avoid `any`:** Use explicit types or generics. Narrow types at boundaries.
+
+Error Handling
+
+- Centralize errors in `src/errors/AppError.ts` with an `isOperational` flag and an HTTP status code.
+- Throw `AppError` for expected conditions (validation, auth, not found). Let unexpected exceptions bubble to the global error handler and return a 500.
+- Global error middleware maps `AppError` → HTTP status and sanitized message; logs full details internally.
+- Example shape:
+
+```ts
+class AppError extends Error {
+  public statusCode: number;
+  public isOperational: boolean;
+  constructor(message: string, statusCode = 400, isOperational = true) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = isOperational;
+  }
+}
+```
+
+Validation and DTOs
+
+- Use `zod` or similar for runtime validation in `src/dtos/` and reuse those schemas to infer TypeScript types.
+- Validate at the edge (route/controller) and keep services defensive.
+
+Logging & Observability
+
+- Use structured JSON logs (e.g., `pino`). Include correlation/request IDs when available.
+- Log at appropriate levels: `debug`, `info`, `warn`, `error`.
+- Do not log secrets or full request bodies in production.
 
 Testing
 
-- Add unit tests for services and integration tests for key flows (auth, product CRUD, order flow).
-- Tests must not rely on external services; use in-memory DB or test doubles where possible.
+- Unit tests: `services`, `utils`, and `repositories` (mock DB access).
+- Integration tests: critical flows (auth, checkout). Use test DB or in-memory DB and reset state between tests.
+- Keep tests fast and deterministic.
 
-APIs and Design
+Linting, Formatting, and Tooling
 
-- Version APIs (e.g., `/api/v1/...`) and document via OpenAPI or simple README.
-- Use pagination, filtering, and sorting for list endpoints.
-- Enforce role-based access control for vendors, customers, and admins.
+- Required dev dependencies (suggested): `eslint`, `@typescript-eslint/parser`, `@typescript-eslint/eslint-plugin`, `prettier`, `husky`, `lint-staged`, `zod`, `pino`.
+- `tsconfig.json`: `strict: true`, `noImplicitAny: true`, `forceConsistentCasingInFileNames: true`.
+- Example `package.json` scripts:
 
-Database
+```json
+"scripts": {
+	"lint": "eslint 'src/**/*.{ts,tsx}' --fix",
+	"format": "prettier --write 'src/**/*.{ts,tsx,md,json}'",
+	"test": "vitest --run"
+}
+```
 
-- Define clear ownership and relationships (e.g., Product -> Vendor, Order -> Customer + OrderItems).
-- Use transactions where multiple related writes must be atomic.
+- Use `husky` + `lint-staged` to run `eslint` and `prettier` on staged files.
 
-Commits and PRs
+Code Reviews and the Assistant
 
-- Small, focused commits with descriptive messages.
-- PRs should include rationale and tests for behavioral changes.
+- The assistant must not uncritically accept requests. For design or implementation changes the assistant will:
+  1.  Analyze the proposed change and list pros/cons.
+  2.  Suggest alternatives aligned with these guidelines.
+  3.  Implement the preferred option after confirmation or when the change is clearly correct.
 
-Assistant Behavior (how I will help)
+Practical Examples (patterns)
 
-- I will analyze and challenge your suggestions against these guidelines.
-- If you ask for a change that violates best practices, I will propose alternatives and explain trade-offs.
-- I will prefer minimal, well-structured file additions and avoid unnecessary files.
-- For every non-trivial change I make, I will include a short rationale in the commit message or patch.
+- Controller → Service → Repository flow (pseudo):
 
-When to Deviate
+```ts
+// controller
+const createProduct = async (req, res, next) => {
+  const data = CreateProductDto.parse(req.body);
+  const product = await productService.create(data);
+  res.status(201).json(product);
+};
 
-- Deviations are acceptable when they measurably improve clarity, reduce risk, or match real-world constraints — but they must be justified in the PR/commit.
+// service
+const create = async (data) => {
+  // business rules, pricing, validation beyond DTO
+  return repository.create(data);
+};
 
-If you'd like additions (CI, release process, performance budgets), tell me and I will extend this document.
+// repository
+const create = async (row) => prisma.product.create({ data: row });
+```
+
+Acceptance Criteria (for PRs / features)
+
+- Code follows the layer separation and file/line heuristics.
+- All new runtime inputs validated via DTOs.
+- Errors use `AppError` for expected failure modes.
+- Linting and formatting pass locally and in CI.
+- Unit tests added for core business logic; integration test added for main flow.
+
+When To Create New Files
+
+- Create a new file when a responsibility is distinct, reused in multiple places, or would make a file >200 lines.
+- Prefer a single file for small, closely related helpers used only by one module.
+
+Next Steps (recommended)
+
+- Run a repo scan to list places that violate these guidelines (controllers with logic, missing DTOs, large files).
+- Add recommended tooling configs (`.eslintrc`, `.prettierrc`, `lint-staged`, `husky`) if you want enforcement.
+
+If you'd like, I can now scan the repository and produce a prioritized refactor list.

@@ -4,6 +4,9 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import { AppError } from './errors/AppError.js';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './utils/auth.js';
+import userRoutes from './routes/userRoutes.js';
+import meRoutes from './routes/meRoutes.js';
+import { requestContext } from './middlewares/requestContext.js';
 
 const app = express();
 
@@ -17,13 +20,21 @@ const app = express();
 // This accepts any subpath and captures it as the `any` parameter.
 // Express v5 / path-to-regexp newer syntax supports a named catch-all
 // using curly braces. If you prefer the documentation's recommendation:
-app.all('/api/auth/{*any}', toNodeHandler(auth));
+// Mount Better Auth handler before JSON parsing.
+// Using Express v5 recommended catch-all pattern per provided docs.
+app.all('/api/auth/*splat', toNodeHandler(auth));
 
+// Attach correlationId and child logger early (after auth handler so auth can run raw)
+app.use(requestContext);
 app.use(express.json());
 
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok' });
 });
+
+// API routes
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1', meRoutes);
 
 // Test route to demonstrate error handling
 app.get('/error', (_req: Request, _res: Response, next: NextFunction) => {

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "user" ALTER COLUMN "passwordHash" DROP NOT NULL,
+ALTER COLUMN "role" SET DEFAULT 'CUSTOMER';

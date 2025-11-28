@@ -9,6 +9,8 @@ import meRoutes from './routes/meRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import sellerRoutes from './routes/sellerRoutes.js';
 import vendorRoutes from './routes/vendorRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
 import { requestContext } from './middlewares/requestContext.js';
 
 const app = express();
@@ -41,6 +43,8 @@ app.use('/api/v1', meRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/sellers', sellerRoutes);
 app.use('/api/v1/vendors', vendorRoutes);
+app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/carts', cartRoutes);
 
 // Test route to demonstrate error handling
 app.get('/error', (_req: Request, _res: Response, next: NextFunction) => {

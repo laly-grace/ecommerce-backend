@@ -26,3 +26,35 @@ export const getUserById = async (id: string) => {
   delete u.passwordHash;
   return u;
 };
+
+export const listUsers = async (opts: {
+  page?: number;
+  limit?: number;
+  role?: string;
+  q?: string;
+}) => {
+  const page = opts.page ?? 1;
+  const limit = opts.limit ?? 20;
+  const repoArgs: any = { page, limit };
+  if (opts.role !== undefined) repoArgs.role = opts.role;
+  if (opts.q !== undefined) repoArgs.q = opts.q;
+  return userRepo.findUsers(repoArgs);
+};
+
+export const updateUser = async (id: string, data: any) => {
+  // If updating password, hash it
+  const toUpdate: any = { ...data };
+  if (toUpdate.password) {
+    const hash = await bcrypt.hash(toUpdate.password, 10);
+    toUpdate.passwordHash = hash;
+    delete toUpdate.password;
+  }
+  const updated = await userRepo.updateUser(id, toUpdate);
+  // @ts-ignore
+  delete updated.passwordHash;
+  return updated;
+};
+
+export const deleteUser = async (id: string) => {
+  await userRepo.deleteUser(id);
+};

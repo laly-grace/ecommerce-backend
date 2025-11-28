@@ -1,4 +1,5 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { AppError } from './errors/AppError.js';
 

@@ -5,10 +5,11 @@ export const createOrder = async (data: CreateOrderDtoType) => {
   // Create order with nested items in a single transaction
   const prismaData: any = {
     totalCents: data.totalCents,
-    shippingAddress: data.shippingAddress ?? null,
-    couponCode: data.couponCode ?? null,
   };
   if (data.customerId !== undefined) prismaData.customerId = data.customerId;
+  if (data.shippingAddress !== undefined)
+    prismaData.shippingAddress = data.shippingAddress;
+  if (data.couponCode !== undefined) prismaData.couponCode = data.couponCode;
   prismaData.items = {
     create: data.items.map((it) => ({
       productId: it.productId,

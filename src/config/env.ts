@@ -6,17 +6,21 @@ dotenv.config();
 // Build a normalized env object first so we can accept either MONGO_URI or DATABASE_URL
 const rawEnv = {
   ...process.env,
-  MONGO_URI: process.env.MONGO_URI ?? process.env.DATABASE_URL
+  MONGO_URI: process.env.MONGO_URI ?? process.env.DATABASE_URL,
 };
 
 const EnvSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'test', 'production'])
+    .default('development'),
   PORT: z
     .string()
     .optional()
-    .refine((v) => v === undefined || /^\d+$/.test(v), { message: 'PORT must be a number' })
+    .refine((v) => v === undefined || /^\d+$/.test(v), {
+      message: 'PORT must be a number',
+    })
     .transform((v) => (v === undefined ? 3000 : parseInt(v as string, 10))),
-  MONGO_URI: z.string().min(1, 'MONGO_URI (or DATABASE_URL) is required')
+  MONGO_URI: z.string().min(1, 'MONGO_URI (or DATABASE_URL) is required'),
 });
 
 const parsed = EnvSchema.safeParse(rawEnv);

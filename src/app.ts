@@ -14,6 +14,7 @@ import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 import { requestContext } from './middlewares/requestContext.js';
 
 const app = express();
@@ -51,6 +52,7 @@ app.use('/api/v1/carts', cartRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/coupons', couponRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 // Test route to demonstrate error handling
 app.get('/error', (_req: Request, _res: Response, next: NextFunction) => {

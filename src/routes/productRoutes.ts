@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { validateRequest } from '../middlewares/validateRequest.js';
+import { requireSeller } from '../middlewares/requireSeller.js';
 import {
   CreateProductDto,
   UpdateProductDto,
@@ -12,6 +13,7 @@ const router = Router();
 router.post(
   '/',
   validateRequest(CreateProductDto),
+  requireSeller,
   productController.createProduct,
 );
 router.get(

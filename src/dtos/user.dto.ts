@@ -1,10 +1,13 @@
 import { z } from 'zod';
+import { emailSchema, passwordSchema, nameSchema } from './common.dto.js';
 
-export const CreateUserDto = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().min(1).optional(),
-  role: z.enum(['ADMIN', 'SELLER', 'CUSTOMER']).optional(),
-});
+export const CreateUserDto = z
+  .object({
+    email: emailSchema,
+    password: passwordSchema,
+    name: nameSchema,
+    role: z.enum(['ADMIN', 'SELLER', 'CUSTOMER']).optional(),
+  })
+  .strict();
 
 export type CreateUserDtoType = z.infer<typeof CreateUserDto>;

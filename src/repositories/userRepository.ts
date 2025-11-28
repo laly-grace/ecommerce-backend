@@ -8,7 +8,7 @@ export const createUser = async (
     data: {
       email: data.email,
       passwordHash: data.passwordHash,
-      name: data.name,
+      name: data.name ?? null,
       role: data.role ?? 'CUSTOMER',
     },
   });

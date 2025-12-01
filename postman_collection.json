@@ -75,7 +75,10 @@
       "name": "Me - Get Session",
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Cookie", "value": "{{sessionCookie}}" }
+        ],
         "url": {
           "raw": "{{baseUrl}}/api/v1/me",
           "host": ["{{baseUrl}}"],

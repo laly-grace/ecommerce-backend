@@ -270,6 +270,10 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
   schemas:
     HealthResponse:
       type: object
@@ -314,12 +318,61 @@ components:
         role:
           type: string
           enum: [ADMIN, SELLER, CUSTOMER]
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        role: { type: string }
+        name: { type: string }
+        phone: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        emailVerified: { type: boolean }
+        image: { type: string, nullable: true }
+    Product:
+      type: object
+      properties:
+        id: { type: string }
+        vendorId: { type: string }
+        title: { type: string }
+        slug: { type: string }
+        description: { type: string, nullable: true }
+        priceCents: { type: integer }
+        originalPriceCents: { type: integer, nullable: true }
+        stock: { type: integer, nullable: true }
+        shippingFeeCents: { type: integer, nullable: true }
+        deliveryTime: { type: string, nullable: true }
+        image: { type: string, format: uri, nullable: true }
+        images:
+          type: array
+          items: { type: string, format: uri }
+        categorySlugs:
+          type: array
+          items: { type: string }
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, DRAFT, ARCHIVED]
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     AuthSignIn:
       type: object
       required: [email, password]
       properties:
         email: { type: string, format: email }
         password: { type: string }
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+        errors:
+          type: object
+        correlationId:
+          type: string
     CreateProduct:
       type: object
       required: [vendorId, title, priceCents]

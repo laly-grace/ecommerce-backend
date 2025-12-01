@@ -67,6 +67,24 @@ Canonical Better Auth endpoints (observed in this dev instance)
 
 - Note: Some Better Auth installations expose alternate paths (e.g. `/api/auth/email/signin`, `/api/auth/signin`) — if one path returns `404`, try the `/api/auth/sign-in/email` variant which is the confirmed working path for this workspace.
 
+Using cookies vs tokens in Postman
+
+- The sign-in endpoint may set a `Set-Cookie` header (session cookie) rather than returning a bearer token. The Postman collection will capture that header into `{{sessionCookie}}` when present.
+- The `Me - Get Session` request in the collection is configured to send either:
+  - `Authorization: Bearer {{token}}` (if sign-in returned a token), or
+  - `Cookie: {{sessionCookie}}` (if sign-in set a session cookie).
+
+Run the Postman collection with Newman (optional)
+
+If you want to run the collection from the command line (CI or local), install Newman and run:
+
+```bash
+# install once: npm install -g newman
+npx newman run postman_collection.json --env-var "baseUrl=http://localhost:3000"
+```
+
+You can also use `npx postman-runtime` or include this command in a CI job. The collection expects the sign-in request to run first to populate `{{token}}` or `{{sessionCookie}}`.
+
 Me (`/api/v1/me`)
 
 - GET `/api/v1/me` — Returns the current session/user info

@@ -11,6 +11,7 @@ Prerequisites
 ```
 STRIPE_SECRET_KEY=sk_test_...   # from Stripe Dashboard -> Developers -> API keys
 STRIPE_WEBHOOK_SECRET=whsec_...  # from `stripe listen` or Dashboard webhook endpoint
+STRIPE_PUBLISHABLE_KEY=pk_test_... # (optional) used by frontend / Stripe.js
 ```
 
 Do NOT commit your `.env` to git.
@@ -67,6 +68,18 @@ node scripts/confirm_payment.js or_123abc 1500
 ```
 
 - The script will print the PaymentIntent id and final status.
+
+### Optional: Confirm payment from a minimal frontend (Stripe.js)
+
+If you want to confirm the PaymentIntent from a frontend (recommended for real card entry), you can use Stripe.js and the `clientSecret` returned by the server. A minimal example HTML file is provided at `docs/stripe_checkout_example.html`.
+
+Usage:
+
+1. Start your server and make sure `STRIPE_PUBLISHABLE_KEY` is set (or paste the publishable key when prompted by the example).
+2. Open `docs/stripe_checkout_example.html` in your browser (serve it from a static server or open file directly).
+3. Enter an `orderId` and amount, click **Create PaymentIntent**, then confirm the payment using the card input.
+
+The frontend will use the `clientSecret` returned from `POST /api/v1/payments` to call `stripe.confirmCardPayment(clientSecret, { payment_method: { card }})`.
 
 6. Verify behavior
 

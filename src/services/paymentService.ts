@@ -5,6 +5,7 @@ import * as reservationSvc from './reservationService.js';
 import * as inventorySvc from './inventoryService.js';
 import { stripe, isStripeConfigured } from './stripeService.js';
 import { env } from '../config/env.js';
+import { logger } from '../utils/logger.js';
 import type {
   CreatePaymentDtoType,
   UpdatePaymentDtoType,
@@ -16,21 +17,47 @@ export const createPayment = async (data: CreatePaymentDtoType) => {
   if (data.method === 'CARD' && (data.gateway === 'stripe' || !data.gateway)) {
     if (!isStripeConfigured()) {
       // Fallback: persist payment record but do not call Stripe
-      return repo.createPayment({
+      const rec = await repo.createPayment({
         ...data,
         gateway: data.gateway ?? null,
       } as any);
+      return { payment: rec };
     }
 
     const currency = (data.currency ?? 'USD').toLowerCase();
-    // create PaymentIntent
-    const intent = await stripe.paymentIntents.create({
-      amount: data.amountCents,
-      currency,
-      metadata: { orderId: data.orderId },
-      // automatic payment methods enables card and others supported
-      automatic_payment_methods: { enabled: true },
-    } as any);
+    // create PaymentIntent (wrap with try/catch to handle API failures)
+    let intent: any;
+    try {
+      intent = await stripe.paymentIntents.create({
+        amount: data.amountCents,
+        currency,
+        metadata: { orderId: data.orderId },
+        // automatic payment methods enables card and others supported
+        automatic_payment_methods: { enabled: true },
+      } as any);
+    } catch (err: any) {
+      logger.error('Stripe PaymentIntent creation failed', err);
+      // persist a failed payment record for auditability
+      const failed = await repo.createPayment({
+        ...data,
+        gateway: 'stripe',
+        transactionRef: null,
+      } as any);
+      try {
+        await repo.updatePayment(failed.id, {
+          status: 'FAILED',
+          errorMessage: String(err?.message ?? err),
+        } as any);
+      } catch (uerr) {
+        logger.error(
+          'Failed to update payment status after Stripe error',
+          uerr,
+        );
+      }
+      throw new Error(
+        `Failed to create payment with Stripe: ${err?.message ?? err}`,
+      );
+    }
 
     // Persist payment record referencing Stripe intent
     const rec = await repo.createPayment({
@@ -44,7 +71,8 @@ export const createPayment = async (data: CreatePaymentDtoType) => {
   }
 
   // Default: persist payment record
-  return repo.createPayment(data);
+  const rec = await repo.createPayment(data);
+  return { payment: rec };
 };
 
 export const getPaymentById = async (id: string) => repo.findPaymentById(id);
@@ -56,6 +84,11 @@ export const updatePayment = async (id: string, data: UpdatePaymentDtoType) =>
   repo.updatePayment(id, data);
 
 export const handleWebhook = async (payload: WebhookPaymentDtoType) => {
+  logger.info('Processing payment webhook', {
+    orderId: payload.orderId,
+    status: payload.status,
+    gateway: payload.gateway,
+  });
   // Map webhook status to internal payment update; create payment if missing
   let payment = await repo.findPaymentByOrderId(payload.orderId as string);
   if (!payment) {
@@ -118,11 +151,10 @@ export const handleWebhook = async (payload: WebhookPaymentDtoType) => {
         }
       }
     } catch (err) {
-      console.warn(
-        'Failed to consume reservations for order',
-        payment.orderId,
-        err,
-      );
+      logger.warn('Failed to consume reservations for order', {
+        orderId: payment.orderId,
+        error: String(err),
+      });
     }
   }
 
@@ -146,6 +178,7 @@ export const handleStripeWebhook = async (
       sigHeader as string,
       secret,
     );
+    logger.info('Received Stripe webhook', { type: event.type, id: event.id });
   } catch (err: any) {
     throw new Error(`Invalid Stripe webhook signature: ${err.message}`);
   }

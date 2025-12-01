@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Stripe Checkout Example</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 1rem;
+      }
+      .card-element {
+        margin: 0.5rem 0;
+      }
+      .result {
+        margin-top: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Stripe Checkout Example</h1>
+    <p>
+      This minimal example shows how to use the `clientSecret` returned by the
+      server to confirm a payment using Stripe.js.
+    </p>
+
+    <label>Order ID (use one from Prisma Studio):</label>
+    <input
+      id="orderId"
+      placeholder="ord_..."
+      style="width: 100%; margin-bottom: 0.5rem"
+    />
+
+    <label>Amount (cents):</label>
+    <input
+      id="amount"
+      value="1500"
+      style="width: 100%; margin-bottom: 0.5rem"
+    />
+
+    <button id="createPayment">Create PaymentIntent</button>
+
+    <div id="payment-form" style="display: none; margin-top: 1rem">
+      <div id="card-element" class="card-element"></div>
+      <button id="confirm">Confirm Payment</button>
+    </div>
+
+    <div id="result" class="result"></div>
+
+    <script>
+      // Replace with your backend URL if different
+      const API_BASE = window.location.origin || 'http://localhost:3000';
+
+      // Replace with your Stripe publishable key (from env on server or set here)
+      // For local testing you can paste the PK manually.
+      const STRIPE_PUBLISHABLE_KEY = '';
+
+      let stripe = null;
+      let elements = null;
+      let cardElement = null;
+      let clientSecret = null;
+
+      document.getElementById('createPayment').addEventListener('click', async () => {
+        const orderId = (document.getElementById('orderId') as HTMLInputElement).value.trim();
+        const amount = parseInt((document.getElementById('amount') as HTMLInputElement).value || '1500', 10);
+        if (!orderId) return alert('Enter orderId');
+
+        // Create payment on server
+        const res = await fetch(`${API_BASE}/api/v1/payments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId, method: 'CARD', amountCents: amount }),
+          credentials: 'include',
+        });
+        const body = await res.json();
+        if (!res.ok) return (document.getElementById('result').innerText = JSON.stringify(body));
+
+        // The server returns { payment, clientSecret? }
+        const data = body.data || body;
+        clientSecret = data.clientSecret;
+        const payment = data.payment;
+        document.getElementById('result').innerText = `Payment created: ${JSON.stringify(payment)}`;
+
+        // If we have a clientSecret, show Stripe.js form to confirm
+        if (clientSecret) {
+          document.getElementById('payment-form').style.display = 'block';
+
+          // Initialize Stripe.js if not already
+          if (!stripe) {
+            if (!STRIPE_PUBLISHABLE_KEY) {
+              const key = prompt('Paste your Stripe publishable key (pk_test_...)');
+              if (!key) return alert('Publishable key required');
+              window.localStorage.setItem('stripe_pk', key);
+            }
+            const pk = STRIPE_PUBLISHABLE_KEY || window.localStorage.getItem('stripe_pk');
+            stripe = Stripe(pk);
+            elements = stripe.elements();
+            cardElement = elements.create('card');
+            cardElement.mount('#card-element');
+          }
+        }
+      });
+
+      document.getElementById('confirm').addEventListener('click', async () => {
+        if (!stripe || !clientSecret) return alert('Missing stripe or clientSecret');
+        document.getElementById('result').innerText = 'Confirming...';
+        const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: (cardElement as any),
+          }
+        });
+        if (error) {
+          document.getElementById('result').innerText = `Error: ${error.message}`;
+        } else {
+          document.getElementById('result').innerText = `Success: ${paymentIntent.status}`;
+        }
+      });
+    </script>
+  </body>
+</html>

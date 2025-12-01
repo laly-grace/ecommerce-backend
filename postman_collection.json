@@ -1,0 +1,193 @@
+{
+  "info": {
+    "name": "Ecommerce API - Representative Collection",
+    "_postman_id": "ecommerce-api-collection",
+    "description": "Representative requests for the ecommerce-full-stack backend.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Sign Up",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"StrongPassw0rd!\",\n  \"name\": \"Alice\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/signup",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "signup"]
+        }
+      }
+    },
+    {
+      "name": "Auth - Sign In",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"StrongPassw0rd!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/signin",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "signin"]
+        }
+      }
+    },
+    {
+      "name": "Me - Get Session",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "me"]
+        }
+      }
+    },
+    {
+      "name": "Users - Create",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"bob@example.com\",\n  \"password\": \"AnotherPass123!\",\n  \"name\": \"Bob\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "users"]
+        }
+      }
+    },
+    {
+      "name": "Products - List",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "products"]
+        }
+      }
+    },
+    {
+      "name": "Products - Create (Seller)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendorId\": \"<vendor-id>\",\n  \"title\": \"Nice shoes\",\n  \"priceCents\": 4999,\n  \"stock\": 10,\n  \"image\": \"https://example.com/img.jpg\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "products"]
+        }
+      }
+    },
+    {
+      "name": "Carts - Create",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sessionId\": \"session-abc-123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/carts",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "carts"]
+        }
+      }
+    },
+    {
+      "name": "Carts - Add Item",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"productId\": \"<product-id>\",\n  \"title\": \"Nice shoes\",\n  \"unitPriceCents\": 4999,\n  \"quantity\": 2\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/carts/{{cartId}}/items",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "carts", "{{cartId}}", "items"]
+        }
+      }
+    },
+    {
+      "name": "Orders - Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"<product-id>\",\n      \"vendorId\": \"<vendor-id>\",\n      \"title\": \"Nice shoes\",\n      \"unitPriceCents\": 4999,\n      \"quantity\": 2\n    }\n  ],\n  \"totalCents\": 9998\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "orders"]
+        }
+      }
+    },
+    {
+      "name": "Payments - Webhook (gateway)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"<order-id>\",\n  \"status\": \"PAID\",\n  \"transactionRef\": \"tx_12345\",\n  \"amountCents\": 9998\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/payments/webhook",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "payments", "webhook"]
+        }
+      }
+    },
+    {
+      "name": "Coupons - Validate",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"WELCOME10\",\n  \"totalCents\": 10000\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/coupons/validate",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "coupons", "validate"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "cartId", "value": "" }
+  ]
+}

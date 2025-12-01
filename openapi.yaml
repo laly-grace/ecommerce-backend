@@ -1,0 +1,276 @@
+openapi: 3.0.3
+info:
+  title: Ecommerce Full Stack API
+  version: '1.0.0'
+  description: Representative OpenAPI spec generated from route inspection. Use DTOs in `src/dtos` as the source of truth.
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /api/v1/me:
+    get:
+      summary: Get current session
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Session object
+  /api/v1/users:
+    post:
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUser'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List users
+      parameters:
+        - in: query
+          name: page
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+  /api/v1/products:
+    get:
+      summary: List products
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Create product (seller)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProduct'
+      responses:
+        '201': { description: Created }
+  /api/v1/products/{id}:
+    get:
+      summary: Get product by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+    put:
+      summary: Update product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProduct'
+      responses: { '200': { description: Updated } }
+    delete:
+      summary: Delete product
+      responses: { '204': { description: Deleted } }
+  /api/v1/carts:
+    post:
+      summary: Create cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCart'
+      responses: { '201': { description: Created } }
+  /api/v1/carts/{id}:
+    get:
+      summary: Get cart
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses: { '200': { description: OK } }
+  /api/v1/carts/{id}/items:
+    post:
+      summary: Add cart item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItem'
+      responses: { '201': { description: Created } }
+  /api/v1/orders:
+    post:
+      summary: Create order
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrder'
+      responses: { '201': { description: Created } }
+    get:
+      summary: List orders
+      security:
+        - bearerAuth: []
+      responses: { '200': { description: OK } }
+  /api/v1/payments:
+    post:
+      summary: Create payment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePayment'
+      responses: { '201': { description: Created } }
+  /api/v1/payments/webhook:
+    post:
+      summary: Payment gateway webhook (public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookPayment'
+      responses: { '200': { description: OK } }
+  /api/v1/coupons/validate:
+    post:
+      summary: Validate/apply coupon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyCoupon'
+      responses: { '200': { description: OK } }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CreateUser:
+      type: object
+      required: [email, password, name]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+        name: { type: string }
+        role:
+          type: string
+          enum: [ADMIN, SELLER, CUSTOMER]
+    CreateProduct:
+      type: object
+      required: [vendorId, title, priceCents]
+      properties:
+        vendorId: { type: string }
+        title: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        priceCents: { type: integer }
+        originalPriceCents: { type: integer }
+        stock: { type: integer }
+        shippingFeeCents: { type: integer }
+        deliveryTime: { type: string }
+        image: { type: string, format: uri }
+        images:
+          type: array
+          items: { type: string, format: uri }
+        categorySlugs:
+          type: array
+          items: { type: string }
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, DRAFT, ARCHIVED]
+    UpdateProduct:
+      allOf:
+        - $ref: '#/components/schemas/CreateProduct'
+        - type: object
+          nullable: true
+    CreateCart:
+      type: object
+      properties:
+        userId: { type: string }
+        sessionId: { type: string }
+    AddCartItem:
+      type: object
+      required: [productId, title, unitPriceCents, quantity]
+      properties:
+        productId: { type: string }
+        title: { type: string }
+        unitPriceCents: { type: integer }
+        quantity: { type: integer }
+        image: { type: string, format: uri }
+        variantSku: { type: string }
+    CreateOrder:
+      type: object
+      required: [items, totalCents]
+      properties:
+        customerId: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            required: [productId, vendorId, title, unitPriceCents, quantity]
+            properties:
+              productId: { type: string }
+              vendorId: { type: string }
+              title: { type: string }
+              unitPriceCents: { type: integer }
+              quantity: { type: integer }
+              image: { type: string, format: uri }
+              variantSku: { type: string }
+        totalCents: { type: integer }
+        shippingAddress: { type: object }
+        couponCode: { type: string }
+    CreatePayment:
+      type: object
+      required: [orderId, method, amountCents]
+      properties:
+        orderId: { type: string }
+        method:
+          type: string
+          enum: [CARD, WALLET, COD, BANK_TRANSFER]
+        amountCents: { type: integer }
+        currency: { type: string }
+        gateway: { type: string }
+        transactionRef: { type: string }
+    WebhookPayment:
+      type: object
+      required: [orderId, status]
+      properties:
+        orderId: { type: string }
+        transactionRef: { type: string }
+        status:
+          type: string
+          enum: [PENDING, AUTHORIZED, PAID, FAILED, REFUNDED]
+        gateway: { type: string }
+        amountCents: { type: integer }
+    ApplyCoupon:
+      type: object
+      required: [code, totalCents]
+      properties:
+        code: { type: string }
+        totalCents: { type: integer }
+        categorySlugs:
+          type: array
+          items: { type: string }

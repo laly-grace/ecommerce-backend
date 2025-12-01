@@ -8,12 +8,14 @@ All API endpoints are mounted under `/api/v1` except the auth handler which is m
 - Auth: all auth routes are handled by Better Auth at `/api/auth/*` (see `src/app.ts` mounting)
 
 Authentication
+
 - This project uses Better Auth with JWT + Bearer token support. To call protected endpoints:
   - Obtain a JWT / Bearer token using the auth endpoints under `/api/auth/*` (register / sign-in endpoints are provided by Better Auth).
   - In Postman set the header `Authorization: Bearer {{token}}` (create an environment variable `{{token}}`).
   - Some endpoints may also accept cookie-based sessions; prefer Authorization header for API clients.
 
 Postman quick setup
+
 - Create an environment with:
   - `baseUrl` = `http://localhost:3000`
   - `token` = (leave blank; set after sign-in)
@@ -21,13 +23,14 @@ Postman quick setup
 - Add a header `Authorization: Bearer {{token}}` for protected endpoints.
 
 Notes on testing
+
 - Webhook endpoints are public (no auth) — set their requests to no Authorization header when testing.
 - Validation is performed by DTO schemas (zod). If you get a 400, check required fields and types in the DTOs under `src/dtos`.
 
-Endpoints
----------
+## Endpoints
 
 Users (`/api/v1/users`)
+
 - POST `/api/v1/users` — Create user
   - Body: `CreateUserDto` (see `src/dtos/user.dto.ts`)
   - Example:
@@ -46,13 +49,16 @@ Users (`/api/v1/users`)
 - DELETE `/api/v1/users/:id` — Delete user
 
 Auth (`/api/auth/*`)
+
 - The Better Auth handler is mounted at `/api/auth/*` (see `src/app.ts`). Use those endpoints to register/log in and obtain tokens. Endpoints and payloads are provided by Better Auth — consult Better Auth docs if you need exact route names for your installed configuration.
 
 Me (`/api/v1/me`)
+
 - GET `/api/v1/me` — Returns the current session/user info
   - Requires a session token in headers. Example: `Authorization: Bearer {{token}}`.
 
 Products (`/api/v1/products`)
+
 - POST `/api/v1/products` — Create product (requires seller)
   - Auth: `requireSeller` middleware
   - Body: `CreateProductDto` (see `src/dtos/product.dto.ts`)
@@ -74,6 +80,7 @@ Products (`/api/v1/products`)
 - DELETE `/api/v1/products/:id` — Delete product
 
 Sellers (`/api/v1/sellers`)
+
 - POST `/api/v1/sellers` — Create seller
   - Body: `CreateSellerDto`
 - GET `/api/v1/sellers/:id` — Get seller
@@ -82,6 +89,7 @@ Sellers (`/api/v1/sellers`)
 - DELETE `/api/v1/sellers/:id` — Delete seller
 
 Vendors (`/api/v1/vendors`)
+
 - POST `/api/v1/vendors` — Create vendor
   - Body: `CreateVendorDto`
 - GET `/api/v1/vendors` — List vendors
@@ -91,6 +99,7 @@ Vendors (`/api/v1/vendors`)
 - DELETE `/api/v1/vendors/:id` — Delete vendor
 
 Categories (`/api/v1/categories`)
+
 - POST `/api/v1/categories` — Create category
   - Body: `CreateCategoryDto`
   - Example:
@@ -104,6 +113,7 @@ Categories (`/api/v1/categories`)
 - DELETE `/api/v1/categories/:id` — Delete category
 
 Carts (`/api/v1/carts`)
+
 - POST `/api/v1/carts` — Create cart
   - Body: `CreateCartDto` (optional `userId` or `sessionId`)
   - Example:
@@ -129,6 +139,7 @@ Carts (`/api/v1/carts`)
 - DELETE `/api/v1/carts/:id` — Delete cart
 
 Orders (`/api/v1/orders`)
+
 - POST `/api/v1/orders` — Create order
   - Auth: `requireAuth` (customer or admin)
   - Body: `CreateOrderDto`
@@ -156,6 +167,7 @@ Orders (`/api/v1/orders`)
 - DELETE `/api/v1/orders/:id` — Delete order (Auth + owner)
 
 Reviews (`/api/v1/reviews`)
+
 - POST `/api/v1/reviews` — Create review (Auth required)
   - Body: `CreateReviewDto`
   - Example:
@@ -169,6 +181,7 @@ Reviews (`/api/v1/reviews`)
 - DELETE `/api/v1/reviews/:id` — Delete review (Auth + owner)
 
 Coupons (`/api/v1/coupons`)
+
 - POST `/api/v1/coupons` — Create coupon (Auth + Admin required)
   - Body: `CreateCouponDto`
 - GET `/api/v1/coupons` — List coupons
@@ -181,6 +194,7 @@ Coupons (`/api/v1/coupons`)
   - Body: `ApplyCouponDto` (code, totalCents, categorySlugs)
 
 Payments (`/api/v1/payments`)
+
 - POST `/api/v1/payments` — Create payment (Auth required)
   - Body: `CreatePaymentDto` (orderId, method, amountCents)
 - POST `/api/v1/payments/webhook` — Webhook (public)
@@ -188,15 +202,18 @@ Payments (`/api/v1/payments`)
 - GET `/api/v1/payments/:id` — Get payment (Auth required)
 
 Errors and status codes
+
 - Validation errors return `400` with details from zod.
 - Unauthorized access returns `401`.
 - Forbidden (role mismatch or ownership check) returns `403`.
 - Not found returns `404`.
 
 Where to find schemas
+
 - DTOs and schemas are in `src/dtos` (e.g., `src/dtos/product.dto.ts`, `user.dto.ts`). Use them as the source of truth for required fields and types.
 
 Examples — Postman usage patterns
+
 - Register / sign-in: import or call the relevant `/api/auth/*` endpoint, copy the returned token to `{{token}}`.
 - Create a product (seller):
   - Set `Authorization` header.
@@ -205,8 +222,10 @@ Examples — Postman usage patterns
   - POST `{{baseUrl}}/api/v1/payments/webhook` with the `WebhookPaymentDto` JSON. No auth header required.
 
 If you want, I can also:
+
 - generate a Postman collection JSON (`postman_collection.json`) containing representative requests you can import, or
 - produce a smaller OpenAPI spec (YAML/JSON) generated from the routes and DTOs for use with Swagger/Postman.
 
 ---
+
 Generated from the route files in `src/routes` on inspection. If you want me to produce a Postman collection or an OpenAPI spec, tell me which you prefer and I'll generate it next.

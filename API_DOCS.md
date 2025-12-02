@@ -67,12 +67,26 @@ Canonical Better Auth endpoints (observed in this dev instance)
 
 - Note: Some Better Auth installations expose alternate paths (e.g. `/api/auth/email/signin`, `/api/auth/signin`) — if one path returns `404`, try the `/api/auth/sign-in/email` variant which is the confirmed working path for this workspace.
 
+- POST `/api/auth/sign-up/email` — Sign up / register with email (Better Auth email strategy).
+  - Body: `{ "email": "...", "password": "...", "name": "..." }`
+  - Example:
+    ```bash
+    curl -i -X POST http://localhost:3000/api/auth/sign-up/email \
+      -H "Content-Type: application/json" \
+      -d '{"email":"newuser@example.com","password":"StrongPassw0rd!","name":"New User"}'
+    ```
+  - Response: usually `201 Created` with a user object wrapped in the standard response envelope; some Better Auth setups auto-sign-in on register and will return a token or set a session cookie similar to sign-in.
+
 Using cookies vs tokens in Postman
 
 - The sign-in endpoint may set a `Set-Cookie` header (session cookie) rather than returning a bearer token. The Postman collection will capture that header into `{{sessionCookie}}` when present.
 - The `Me - Get Session` request in the collection is configured to send either:
   - `Authorization: Bearer {{token}}` (if sign-in returned a token), or
   - `Cookie: {{sessionCookie}}` (if sign-in set a session cookie).
+
+Origin header
+
+- Some endpoints and CORS policies expect an `Origin` header. The Postman collection includes an `Origin: {{origin}}` header on requests. Set `{{origin}}` in your Postman environment (default: `http://localhost:3000`).
 
 Run the Postman collection with Newman (optional)
 

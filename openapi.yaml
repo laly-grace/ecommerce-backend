@@ -248,6 +248,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StandardResponse'
+  /api/auth/sign-up/email:
+    post:
+      summary: Sign up with email (Better Auth email strategy)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUser'
+      responses:
+        '201':
+          description: Created (Better Auth may also return session info)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
   /api/v1/coupons/validate:
     post:
       summary: Validate/apply coupon
